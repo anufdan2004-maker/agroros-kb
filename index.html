@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Агророс — База знаний</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+<style>
+:root{
+  --bg:#f4f0eb;--bg2:#ede7df;--surface:#fff;--surface2:#faf7f4;--surface3:#f0ebe4;
+  --border:#e0d8cf;--border2:#cfc5b8;
+  --ac:#3d7a4a;--ac-l:#e8f3eb;--ac-m:#b8d9bf;
+  --ac2:#7a5c3d;--ac2-l:#f3ece4;
+  --t:#2c2418;--tm:#7a6e62;--td:#b5a99e;
+  --ios:#c0522a;--ios-l:#faede8;
+  --and:#3d7a4a;--and-l:#e8f3eb;
+  --web:#2a5c8a;--web-l:#e4eef7;
+  --danger:#c0392b;--danger-l:#fdecea;
+  --r:14px;--rs:9px;
+  --sh:0 2px 12px rgba(61,45,25,.08);
+  --sh-md:0 4px 24px rgba(61,45,25,.13);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Golos Text',sans-serif;background:var(--bg);color:var(--t);min-height:100vh;display:flex;overflow:hidden}
+
+/* ─ LOADING ─ */
+.loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px}
+.loading-screen.hidden{display:none}
+.spinner{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--ac);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ─ LOGIN SCREEN ─ */
+.login-screen{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;z-index:500;flex-direction:column;gap:0}
+.login-screen.open{display:flex}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:36px 40px;width:100%;max-width:400px;box-shadow:var(--sh-md)}
+.login-logo{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:700;color:var(--ac);margin-bottom:6px}
+.login-sub{font-size:13px;color:var(--tm);margin-bottom:28px}
+.login-field{display:flex;flex-direction:column;gap:5px;margin-bottom:16px}
+.login-field label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--tm)}
+.login-field input{background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--rs);padding:12px 14px;font-family:'Golos Text',sans-serif;font-size:14px;color:var(--t);outline:none;transition:border-color .15s}
+.login-field input:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(61,122,74,.1)}
+.login-err{font-size:12.5px;color:var(--danger);margin-bottom:12px;display:none;background:var(--danger-l);padding:8px 12px;border-radius:8px}
+.login-err.show{display:block}
+
+/* ─ SIDEBAR ─ */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:256px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;box-shadow:2px 0 16px rgba(61,45,25,.06);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.logo{padding:22px 20px 18px;background:linear-gradient(135deg,#24502e 0%,#3d7a4a 100%)}
+.logo-text{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:#fff;letter-spacing:.06em}
+.logo-sub{font-size:10px;color:rgba(255,255,255,.6);margin-top:3px;letter-spacing:.1em;text-transform:uppercase}
+.nav{padding:12px 10px;flex:1;overflow-y:auto}
+.nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--td);padding:0 10px;margin-bottom:6px;margin-top:14px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--rs);cursor:pointer;font-size:13px;color:var(--tm);transition:all .15s;border:1px solid transparent;margin-bottom:2px;font-weight:500;user-select:none}
+.nav-item:hover{background:var(--surface3);color:var(--t)}
+.nav-item.active{background:var(--ac-l);color:var(--ac);border-color:var(--ac-m)}
+.nav-item.danger:hover{background:var(--danger-l);color:var(--danger)}
+.nav-item .ico{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.nbadge{margin-left:auto;font-size:10px;background:var(--surface3);color:var(--tm);padding:2px 7px;border-radius:20px;font-weight:600;flex-shrink:0}
+.nav-item.active .nbadge{background:var(--ac-m);color:var(--ac)}
+.topic-group{margin-bottom:4px}
+.topic-header{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--rs);cursor:pointer;font-size:13px;font-weight:600;color:var(--t);transition:all .15s;user-select:none}
+.topic-header:hover{background:var(--surface3)}
+.topic-arrow{margin-left:auto;font-size:10px;color:var(--td);transition:transform .2s;flex-shrink:0}
+.topic-header.open .topic-arrow{transform:rotate(90deg)}
+.topic-children{display:none;padding-left:8px}
+.topic-children.open{display:block}
+.subtopic-item{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--rs);cursor:pointer;font-size:12.5px;color:var(--tm);transition:all .15s;border:1px solid transparent;margin-bottom:2px;font-weight:500}
+.subtopic-item:hover{background:var(--surface3);color:var(--t)}
+.subtopic-item.active{background:var(--ac-l);color:var(--ac);border-color:var(--ac-m)}
+.subtopic-item .nbadge{background:var(--surface3)}
+.subtopic-item.active .nbadge{background:var(--ac-m);color:var(--ac)}
+
+/* Admin badge in sidebar */
+.admin-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(61,122,74,.15);color:var(--ac);margin-left:auto}
+
+.sidebar-footer{padding:12px;border-top:1px solid var(--border)}
+.user-chip{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--rs);border:1px solid var(--border)}
+.user-av{width:33px;height:33px;border-radius:50%;background:linear-gradient(135deg,var(--ac-l),var(--ac2-l));display:flex;align-items:center;justify-content:center;font-size:15px;border:2px solid var(--ac-m)}
+.user-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-role{font-size:10.5px;color:var(--tm)}
+
+/* ─ MAIN ─ */
+.main{margin-left:256px;flex:1;display:flex;flex-direction:column;min-height:100vh;overflow:hidden}
+.topbar{padding:13px 28px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.92);backdrop-filter:blur(12px);display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50;box-shadow:0 1px 8px rgba(61,45,25,.06)}
+.topbar-title{font-family:'Unbounded',sans-serif;font-size:12px;font-weight:600;color:var(--tm);flex:1}
+.topbar-crumb{font-size:12px;color:var(--td);display:flex;align-items:center;gap:6px}
+.topbar-crumb span{color:var(--t);font-weight:600}
+.mob-topbar-btn{display:none;background:none;border:none;cursor:pointer;font-size:22px;padding:4px;color:var(--tm);line-height:1}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(44,36,24,.4);z-index:99;backdrop-filter:blur(2px)}
+.sidebar-overlay.open{display:block}
+
+/* ─ STATS ─ */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:18px 28px 10px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px 18px;box-shadow:var(--sh)}
+.stat-label{font-size:10.5px;color:var(--tm);margin-bottom:5px;text-transform:uppercase;letter-spacing:.08em}
+.stat-val{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:700}
+.stat-val.g{color:var(--ac)}.stat-val.b{color:var(--web)}.stat-val.o{color:var(--ios)}
+
+/* ─ SEARCH ─ */
+.search-wrap{padding:16px 28px 8px}
+.sh{font-family:'Unbounded',sans-serif;font-size:19px;font-weight:700;line-height:1.3;margin-bottom:5px}
+.sh span{color:var(--ac)}
+.ssub{font-size:12.5px;color:var(--tm);margin-bottom:14px}
+.sbar{display:flex;align-items:center;gap:12px;background:var(--surface);border:2px solid var(--border2);border-radius:var(--r);padding:12px 18px;transition:all .2s;position:relative;box-shadow:var(--sh)}
+.sbar:focus-within{border-color:var(--ac);box-shadow:0 0 0 4px rgba(61,122,74,.1)}
+.sbar input{flex:1;background:none;border:none;outline:none;font-family:'Golos Text',sans-serif;font-size:15px;color:var(--t);caret-color:var(--ac)}
+.sbar input::placeholder{color:var(--td)}
+.sico{font-size:17px;color:var(--td);flex-shrink:0}
+.kbd{padding:3px 8px;background:var(--surface3);border:1px solid var(--border2);border-radius:6px;font-size:11px;color:var(--tm);font-weight:600;cursor:pointer}
+.suggestions{position:absolute;top:calc(100% + 8px);left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);overflow:hidden;z-index:200;box-shadow:var(--sh-md);display:none}
+.suggestions.open{display:block}
+.sug-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;transition:background .12s;font-size:13px;border-bottom:1px solid var(--border)}
+.sug-item:last-child{border-bottom:none}
+.sug-item:hover,.sug-item.focused{background:var(--surface3)}
+.sug-text mark{background:rgba(61,122,74,.15);color:var(--ac);border-radius:3px;padding:0 2px;font-style:normal}
+.sug-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;flex-shrink:0}
+.sug-tag.ios{background:var(--ios-l);color:var(--ios)}.sug-tag.android{background:var(--and-l);color:var(--and)}.sug-tag.web{background:var(--web-l);color:var(--web)}
+.sug-header{padding:7px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--td);background:var(--surface2)}
+.filters{display:flex;gap:8px;padding:10px 28px;flex-wrap:wrap}
+.chip{padding:6px 14px;border-radius:30px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;border:1.5px solid var(--border2);background:var(--surface);color:var(--tm);display:flex;align-items:center;gap:6px;user-select:none;box-shadow:var(--sh)}
+.chip:hover{background:var(--surface3);color:var(--t)}
+.chip.active{border-color:var(--ac);color:var(--ac);background:var(--ac-l)}
+.chip.cand.active{border-color:var(--and);color:var(--and);background:var(--and-l)}
+.chip.cios.active{border-color:var(--ios);color:var(--ios);background:var(--ios-l)}
+.chip.cweb.active{border-color:var(--web);color:var(--web);background:var(--web-l)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+.results-meta{padding:0 28px 6px;display:flex;align-items:center;gap:10px;min-height:30px}
+.rmeta-text{font-size:12px;color:var(--tm)}
+.rmeta-text span{color:var(--ac);font-weight:600}
+.rmeta-clear{font-size:12px;color:var(--tm);cursor:pointer;padding:3px 10px;border-radius:6px;border:1px solid var(--border2);background:none;font-family:inherit;transition:all .15s}
+.rmeta-clear:hover{background:var(--surface3)}
+
+/* ─ CARDS ─ */
+.content{padding:4px 28px 40px;overflow-y:auto;flex:1;max-height:calc(100vh - 290px)}
+.sec-label{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--td);margin-bottom:12px;margin-top:16px;display:flex;align-items:center;gap:8px;font-weight:600}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;margin-bottom:8px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;box-shadow:var(--sh)}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.card.ios::before{background:linear-gradient(90deg,var(--ios),#e07050)}
+.card.android::before{background:linear-gradient(90deg,var(--and),#5aaa68)}
+.card.web::before{background:linear-gradient(90deg,var(--web),#4a8abf)}
+.card:hover{border-color:var(--border2);background:var(--surface2);transform:translateY(-3px);box-shadow:var(--sh-md)}
+.card-hd{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+.card-ico{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.card.ios .card-ico{background:var(--ios-l)}.card.android .card-ico{background:var(--and-l)}.card.web .card-ico{background:var(--web-l)}
+.card-title{font-size:13.5px;font-weight:600;line-height:1.4;flex:1;color:var(--t)}
+.card-snippet{font-size:12px;color:var(--tm);line-height:1.5;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-meta{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.tag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;text-transform:uppercase;letter-spacing:.05em}
+.tag.ios{background:var(--ios-l);color:var(--ios)}.tag.android{background:var(--and-l);color:var(--and)}.tag.web{background:var(--web-l);color:var(--web)}
+.mbadge{font-size:11px;color:var(--tm);margin-left:auto}
+.match-score{font-size:10px;padding:2px 7px;border-radius:4px}
+.match-score.high{background:var(--ac-l);color:var(--ac)}.match-score.med{background:var(--web-l);color:var(--web)}
+.card-gif{width:100%;border-radius:8px;overflow:hidden;margin-bottom:10px;max-height:120px;background:var(--surface3)}
+.card-gif img{width:100%;height:120px;object-fit:cover;display:block}
+
+/* Admin actions on card (visible only when isAdmin) */
+.card-actions{display:none;position:absolute;top:10px;right:10px;gap:6px}
+.card-actions.visible{display:flex}
+.card-act-btn{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:var(--sh)}
+.card-act-btn:hover{background:var(--surface3);border-color:var(--border2)}
+.card-act-btn.del:hover{background:var(--danger-l);border-color:var(--danger);color:var(--danger)}
+
+.nores{text-align:center;padding:60px 20px;color:var(--tm)}
+.nores .ni{font-size:48px;margin-bottom:12px;opacity:.35}
+.nores h3{font-size:16px;margin-bottom:6px;color:var(--t);font-weight:600}
+.nores-hint{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.nores-chip{padding:6px 14px;background:var(--surface);border:1px solid var(--border2);border-radius:20px;font-size:12px;cursor:pointer;transition:all .15s;color:var(--tm)}
+.nores-chip:hover{background:var(--ac-l);color:var(--ac);border-color:var(--ac-m)}
+
+/* ─ MODAL ─ */
+.moverlay{display:none;position:fixed;inset:0;background:rgba(44,36,24,.5);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;padding:24px}
+.moverlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;width:100%;max-width:600px;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(44,36,24,.2);animation:mi .2s ease}
+@keyframes mi{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.mhdr{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:14px}
+.mico{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.mico.ios{background:var(--ios-l)}.mico.android{background:var(--and-l)}.mico.web{background:var(--web-l)}
+.mtitle{flex:1;font-size:15px;font-weight:600;line-height:1.4;color:var(--t)}
+.mclose{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--tm);transition:all .15s;flex-shrink:0}
+.mclose:hover{background:var(--surface3);color:var(--t)}
+.mbody{padding:20px 24px;overflow-y:auto;flex:1}
+.gif-container{width:100%;border-radius:var(--r);overflow:hidden;margin-bottom:16px;box-shadow:var(--sh-md);background:var(--surface3)}
+.gif-container img{width:100%;display:block;max-height:340px;object-fit:contain}
+.vph{width:100%;aspect-ratio:16/9;background:var(--surface3);border:2px dashed var(--border2);border-radius:var(--r);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;margin-bottom:16px;color:var(--tm)}
+.mdesc{font-size:14px;line-height:1.8;color:var(--t)}
+.mftr{padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:10px;background:var(--surface2);flex-wrap:wrap}
+
+/* ─ BUTTONS ─ */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:var(--rs);font-family:'Golos Text',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;transition:all .15s;border:none}
+.btn-p{background:var(--ac);color:#fff}
+.btn-p:hover{background:#2d5e38;transform:translateY(-1px);box-shadow:0 4px 12px rgba(61,122,74,.3)}
+.btn-g{background:var(--surface3);color:var(--tm);border:1px solid var(--border2)}
+.btn-g:hover{background:var(--border);color:var(--t)}
+.btn-danger{background:var(--danger-l);color:var(--danger);border:1px solid rgba(192,57,43,.2)}
+.btn-danger:hover{background:var(--danger);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none !important}
+
+/* ─ ADMIN PANEL ─ */
+.adminv{display:none;overflow-y:auto;max-height:calc(100vh - 60px);padding:0 28px 40px}
+.adminv.visible{display:block}
+.fcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:18px;box-shadow:var(--sh)}
+.fcard-title{font-size:14px;font-weight:700;margin-bottom:16px;color:var(--t);display:flex;align-items:center;gap:8px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:14px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg.full{grid-column:1/-1}
+.fg.span3{grid-column:1/-1}
+label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--tm)}
+input[type=text],input[type=email],input[type=password],select,textarea{background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--rs);padding:10px 13px;font-family:'Golos Text',sans-serif;font-size:13.5px;color:var(--t);outline:none;transition:border-color .15s;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(61,122,74,.1)}
+textarea{resize:vertical;min-height:90px}
+.hint{font-size:11.5px;color:var(--td);margin-top:3px}
+.upzone{border:2px dashed var(--border2);border-radius:var(--r);padding:22px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2);position:relative}
+.upzone:hover,.upzone.dragover{border-color:var(--ac);background:var(--ac-l)}
+.upzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upzone .ui{font-size:30px;margin-bottom:6px}
+.upzone .ut{font-size:13px;font-weight:600;margin-bottom:3px;color:var(--t)}
+.upzone .us{font-size:12px;color:var(--tm)}
+.upload-preview{margin-top:10px;border-radius:var(--rs);overflow:hidden;max-height:150px;background:var(--surface3)}
+.upload-preview img{width:100%;max-height:150px;object-fit:contain;display:block}
+.upload-name{font-size:12px;color:var(--ac);margin-top:5px;font-weight:600}
+.progress-bar{height:3px;background:var(--ac-l);border-radius:2px;overflow:hidden;margin-top:8px;display:none}
+.progress-bar.show{display:block}
+.progress-fill{height:100%;background:var(--ac);border-radius:2px;transition:width .3s;width:0%}
+.alist-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.alist-item:last-child{border-bottom:none}
+.alist-gif{width:44px;height:30px;border-radius:5px;object-fit:cover;border:1px solid var(--border);flex-shrink:0}
+.alist-ico{width:44px;text-align:center;font-size:20px;flex-shrink:0}
+.alist-info{flex:1;min-width:0}
+.alist-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alist-sub{font-size:11px;color:var(--tm);margin-top:2px}
+.act-btn{background:none;border:1px solid var(--border);cursor:pointer;font-size:12px;padding:5px 10px;border-radius:6px;transition:all .15s;font-family:inherit;color:var(--tm)}
+.act-btn:hover{background:var(--surface3);color:var(--t);border-color:var(--border2)}
+.act-btn.del:hover{border-color:var(--danger);color:var(--danger);background:var(--danger-l)}
+.mgmt-row{display:flex;gap:10px;margin-bottom:10px;align-items:flex-end}
+.mgmt-row input{flex:1}
+.topic-section{margin-bottom:14px;padding:14px;background:var(--surface2);border-radius:var(--rs);border:1px solid var(--border)}
+.topic-section-title{font-size:12.5px;font-weight:700;color:var(--t);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+
+/* ─ TOAST ─ */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--ac-m);border-radius:var(--r);padding:13px 18px;font-size:13.5px;color:var(--ac);display:flex;align-items:center;gap:8px;box-shadow:var(--sh-md);z-index:999;transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1)}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.err{border-color:rgba(192,57,43,.3);color:var(--danger)}
+
+/* ─ RESPONSIVE ─ */
+@media(max-width:1024px){
+  .sidebar{width:220px}.main{margin-left:220px}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .search-wrap,.filters,.results-meta,.content,.adminv{padding-left:20px;padding-right:20px}
+  .topbar{padding:13px 20px}
+}
+@media(max-width:768px){
+  body{overflow-x:hidden}
+  .sidebar{width:280px;transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .mob-topbar-btn{display:flex}
+  .main{margin-left:0}
+  .topbar{padding:11px 16px;gap:10px}
+  .topbar-title{font-size:11px}
+  .topbar-crumb{display:none}
+  .stats-row{grid-template-columns:repeat(2,1fr);gap:8px;padding:14px 16px 8px}
+  .stat-card{padding:12px 14px}.stat-val{font-size:20px}
+  .search-wrap{padding:14px 16px 8px}
+  .sh{font-size:16px}.ssub{font-size:12px;margin-bottom:12px}
+  .sbar{padding:11px 14px}
+  .filters{padding:8px 16px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:7px}
+  .filters::-webkit-scrollbar{display:none}
+  .chip{flex-shrink:0;font-size:11.5px;padding:6px 12px}
+  .results-meta{padding:0 16px 6px}
+  .content{padding:4px 16px 100px;max-height:calc(100vh - 260px)}
+  .cards-grid{grid-template-columns:1fr;gap:10px}
+  .card{padding:15px 16px}
+  .moverlay{padding:0;align-items:flex-end}
+  .modal{max-width:100%;border-radius:20px 20px 0 0;max-height:92vh;animation:slide-up .25s ease}
+  @keyframes slide-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .mhdr{padding:16px 18px 14px}.mbody{padding:16px 18px}.mftr{padding:12px 18px 24px}
+  .adminv{padding:0 16px 100px;max-height:calc(100vh - 60px)}
+  .fcard{padding:16px}
+  .fgrid{grid-template-columns:1fr}
+  .fg.full,.fg.span3{grid-column:1}
+  .login-box{margin:16px;padding:28px 24px}
+}
+@media(max-width:375px){
+  .stats-row{gap:6px;padding:10px 12px 6px}.stat-val{font-size:18px}
+  .content{padding:4px 12px 100px}
+  .search-wrap{padding:12px 12px 6px}
+  .filters{padding:6px 12px}
+}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+.sv{display:flex;flex-direction:column}
+.sv.hidden{display:none}
+mark{background:rgba(61,122,74,.15);color:var(--ac);border-radius:3px;padding:0 2px;font-style:normal}
+</style>
+</head>
+<body>
+
+<!-- OVERLAY -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<!-- LOADING -->
+<div class="loading-screen" id="loader"><div class="spinner"></div><div style="font-size:13px;color:var(--tm)" id="loader-text">Загружаем базу знаний...</div></div>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">АГРОРОС</div>
+    <div class="login-sub">Вход для администраторов</div>
+    <div class="login-field"><label>Email</label><input type="email" id="login-email" placeholder="admin@agroros.ru" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="login-field"><label>Пароль</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="login-err" id="login-err">Неверный email или пароль</div>
+    <button class="btn btn-p" id="login-btn" onclick="doLogin()" style="width:100%;justify-content:center;padding:13px">Войти</button>
+    <button class="btn btn-g" onclick="closeLogin()" style="width:100%;justify-content:center;margin-top:10px">Отмена</button>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-text">АГРОРОС</div>
+    <div class="logo-sub">База знаний · v5.0</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-label">Навигация</div>
+    <div class="nav-item active" id="nn-search" onclick="showView('search');setSubtopic(null)"><span class="ico">🔍</span>Все статьи</div>
+    <div class="nav-label">Разделы</div>
+    <div id="nav-topics"></div>
+    <div id="admin-nav" style="display:none">
+      <div class="nav-label">Администратор</div>
+      <div class="nav-item" id="nn-admin" onclick="showView('admin')"><span class="ico">➕</span>Добавить статью</div>
+      <div class="nav-item" id="nn-mgmt" onclick="showView('mgmt')"><span class="ico">⚙️</span>Управление разделами</div>
+    </div>
+    <div class="nav-label">Аккаунт</div>
+    <div class="nav-item" id="nav-login-btn" onclick="openLogin()"><span class="ico">🔐</span>Войти как админ</div>
+    <div class="nav-item danger" id="nav-logout-btn" onclick="doLogout()" style="display:none"><span class="ico">🚪</span>Выйти</div>
+    <div class="nav-item" onclick="loadAll(true)"><span class="ico">🔄</span>Обновить данные</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="user-av" id="user-av">👤</div>
+      <div style="min-width:0">
+        <div class="user-name" id="user-name">Гость</div>
+        <div class="user-role" id="user-role">Только просмотр</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- SEARCH VIEW -->
+  <div id="vSearch" class="sv">
+    <div class="topbar">
+      <button class="mob-topbar-btn" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-title">База знаний</div>
+      <div class="topbar-crumb" id="crumb"></div>
+      <span style="font-size:12px;color:var(--tm)" id="tc">загрузка...</span>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Всего статей</div><div class="stat-val g" id="sv-total">—</div></div>
+      <div class="stat-card"><div class="stat-label">С гифками</div><div class="stat-val b" id="sv-gif">—</div></div>
+      <div class="stat-card"><div class="stat-label">iOS / Android</div><div class="stat-val o" id="sv-ia">— / —</div></div>
+      <div class="stat-card"><div class="stat-label">Веб ДБО</div><div class="stat-val g" id="sv-web">—</div></div>
+    </div>
+    <div class="search-wrap">
+      <div class="sh">Найди ответ <span>быстро</span></div>
+      <div class="ssub">Умный поиск с исправлением опечаток · все данные из защищённой базы</div>
+      <div class="sbar" id="sbar">
+        <span class="sico">🔍</span>
+        <input type="text" id="si" placeholder="Например: как отозвать платёж, версия iOS, выписка..."
+          oninput="handleSearch(this.value)" onkeydown="handleKey(event)" onfocus="showSugg()" autocomplete="off">
+        <span class="kbd" onclick="clearSearch()">Esc</span>
+        <div class="suggestions" id="sugg"></div>
+      </div>
+    </div>
+    <div class="filters">
+      <div class="chip active" onclick="setFilter('all',this)"><span class="dot"></span>Все</div>
+      <div class="chip cios" onclick="setFilter('ios',this)"><span class="dot" style="background:var(--ios)"></span>iOS</div>
+      <div class="chip cand" onclick="setFilter('android',this)"><span class="dot" style="background:var(--and)"></span>Android</div>
+      <div class="chip cweb" onclick="setFilter('web',this)"><span class="dot" style="background:var(--web)"></span>Веб</div>
+      <div class="chip" onclick="setFilter('gif',this)">🎞️ С гифкой</div>
+    </div>
+    <div class="results-meta" id="rmeta"></div>
+    <div class="content" id="cards"></div>
+  </div>
+
+  <!-- ADMIN VIEW -->
+  <div id="vAdmin" class="adminv">
+    <div class="topbar" style="margin:0 -28px 20px;padding:13px 28px">
+      <button class="mob-topbar-btn" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-title" id="admin-view-title">➕ Добавить статью</div>
+    </div>
+    <div class="fcard">
+      <div class="fcard-title" id="form-title">📝 Новая статья</div>
+      <input type="hidden" id="edit-id">
+      <div class="fgrid">
+        <div class="fg full"><label>Заголовок / вопрос</label><input type="text" id="nt" placeholder="Как сменить пин-код в приложении"></div>
+        <div class="fg"><label>Раздел</label><select id="n-subtopic"></select></div>
+        <div class="fg"><label>Иконка (эмодзи)</label><input type="text" id="nico" placeholder="📱"></div>
+        <div class="fg full"><label>Ответ / описание</label><textarea id="nd" placeholder="Напиши подробный ответ или пошаговую инструкцию..."></textarea></div>
+        <div class="fg full"><label>Ключевые слова</label><input type="text" id="nkw" placeholder="платёж поручение перевод создать"></div>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;margin-bottom:6px">Гифка / изображение</label>
+        <div class="upzone" id="upzone">
+          <input type="file" id="gif-file" accept="image/*,.gif" onchange="previewFile(event)">
+          <div class="ui">🎞️</div>
+          <div class="ut">Перетащи гифку или нажми для выбора</div>
+          <div class="us">GIF, PNG, JPG · рекомендуем GIF для инструкций</div>
+          <div class="progress-bar" id="upload-progress"><div class="progress-fill" id="progress-fill"></div></div>
+        </div>
+        <div id="file-preview" style="display:none">
+          <div class="upload-preview"><img id="preview-img" src=""></div>
+          <div class="upload-name" id="preview-name"></div>
+          <button class="btn btn-g" onclick="clearFile()" style="margin-top:8px;font-size:12px;padding:6px 12px">✕ Убрать файл</button>
+        </div>
+        <div style="margin-top:8px">
+          <label style="display:block;margin-bottom:5px">Или ссылка на уже загруженную гифку</label>
+          <input type="text" id="media-url-input" placeholder="https://...">
+        </div>
+        <div id="current-gif-preview" style="display:none;margin-top:8px">
+          <div style="font-size:11px;color:var(--tm);margin-bottom:4px">Текущая гифка:</div>
+          <div class="upload-preview"><img id="current-gif-img" src=""></div>
+          <button class="btn btn-g" onclick="removeCurrentGif()" style="margin-top:6px;font-size:12px;padding:6px 12px">✕ Удалить гифку</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-p" id="save-btn" onclick="saveArticle()">✅ Сохранить</button>
+        <button class="btn btn-g" onclick="cancelEdit()">Отмена</button>
+      </div>
+    </div>
+    <div class="fcard">
+      <div class="fcard-title">📋 Все статьи (<span id="ac">0</span>)</div>
+      <div style="margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap">
+        <select id="admin-filter-sub" onchange="renderAdminList()" style="font-size:13px;padding:7px 12px;width:auto;flex:1">
+          <option value="">Все разделы</option>
+        </select>
+        <input type="text" id="admin-search" oninput="renderAdminList()" placeholder="Поиск по названию..." style="flex:1;font-size:13px;padding:7px 12px">
+      </div>
+      <div id="alist"></div>
+    </div>
+  </div>
+
+  <!-- MGMT VIEW -->
+  <div id="vMgmt" class="adminv">
+    <div class="topbar" style="margin:0 -28px 20px;padding:13px 28px">
+      <button class="mob-topbar-btn" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-title">⚙️ Управление разделами</div>
+    </div>
+    <div class="fcard">
+      <div class="fcard-title">🏷️ Топики и подтопики</div>
+      <div id="mgmt-topics"></div>
+      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px">➕ Добавить топик</div>
+        <div class="mgmt-row">
+          <input type="text" id="new-topic-icon" placeholder="🏦" style="max-width:70px;flex:none">
+          <input type="text" id="new-topic-name" placeholder="Название топика">
+          <button class="btn btn-p" onclick="addTopic()" style="flex:none">Добавить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL -->
+<div class="moverlay" id="modal" onclick="if(event.target.id==='modal')closeModal()">
+  <div class="modal">
+    <div class="mhdr">
+      <div class="mico" id="mico"></div>
+      <div style="flex:1">
+        <div id="mtag" class="tag" style="margin-bottom:6px;display:inline-block"></div>
+        <div class="mtitle" id="mtitle"></div>
+      </div>
+      <button class="mclose" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mbody" id="mbody"></div>
+    <div class="mftr" id="mftr">
+      <button class="btn btn-p" onclick="copyAns()">📋 Скопировать ответ</button>
+      <button class="btn btn-g" id="modal-edit-btn" onclick="editFromModal()" style="display:none">✏️ Редактировать</button>
+      <button class="btn btn-g" onclick="closeModal()">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="tmsg"></span></div>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────────────────────────
+var API = '/.netlify/functions/api';
+var AUTH = '/.netlify/functions/auth';
+var UPLOAD = '/.netlify/functions/upload';
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+var KB=[], TOPICS=[], SUBTOPICS=[], fuse=null;
+var curFilter='all', curSearch='', curItem=null, sugFocused=-1, curSubtopicId=null;
+var pendingFile=null, editingId=null, removeGif=false;
+var userToken=null, userEmail=null, isAdmin=false;
+
+var fuseOpts={includeScore:true,threshold:0.42,ignoreLocation:true,minMatchCharLength:2,
+  keys:[{name:'title',weight:0.6},{name:'keywords',weight:0.3},{name:'description',weight:0.1}]};
+
+// ── AUTH ─────────────────────────────────────────────────────────────────────
+function openLogin(){ document.getElementById('login-screen').classList.add('open'); setTimeout(function(){document.getElementById('login-email').focus();},100); }
+function closeLogin(){ document.getElementById('login-screen').classList.remove('open'); }
+
+function doLogin(){
+  var email=document.getElementById('login-email').value.trim();
+  var pass=document.getElementById('login-pass').value;
+  var btn=document.getElementById('login-btn');
+  var err=document.getElementById('login-err');
+  err.classList.remove('show');
+  btn.disabled=true; btn.textContent='Входим...';
+  fetch(AUTH,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'login',email:email,password:pass})
+  }).then(function(r){return r.json();}).then(function(data){
+    if (data.access_token) {
+      userToken=data.access_token;
+      userEmail=data.user?.email||email;
+      sessionStorage.setItem('sb_token', userToken);
+      sessionStorage.setItem('sb_email', userEmail);
+      setAdminMode(true);
+      closeLogin();
+      showToast('✅ Добро пожаловать, '+userEmail);
+    } else {
+      err.classList.add('show');
+    }
+    btn.disabled=false; btn.textContent='Войти';
+  }).catch(function(){
+    err.textContent='Ошибка подключения. Попробуй ещё раз.';
+    err.classList.add('show');
+    btn.disabled=false; btn.textContent='Войти';
+  });
+}
+
+function doLogout(){
+  sessionStorage.removeItem('sb_token');
+  sessionStorage.removeItem('sb_email');
+  userToken=null; userEmail=null;
+  setAdminMode(false);
+  showView('search');
+  showToast('👋 Вышли из аккаунта');
+}
+
+function setAdminMode(admin){
+  isAdmin=admin;
+  document.getElementById('admin-nav').style.display=admin?'block':'none';
+  document.getElementById('nav-login-btn').style.display=admin?'none':'flex';
+  document.getElementById('nav-logout-btn').style.display=admin?'flex':'none';
+  document.getElementById('user-name').textContent=admin?(userEmail||'Администратор'):'Гость';
+  document.getElementById('user-role').textContent=admin?'Администратор':'Только просмотр';
+  document.getElementById('user-av').textContent=admin?'👑':'👤';
+  renderCards(getCurrentResults());
+}
+
+function checkSavedSession(){
+  var t=sessionStorage.getItem('sb_token');
+  var e=sessionStorage.getItem('sb_email');
+  if (t) {
+    userToken=t; userEmail=e;
+    fetch(AUTH,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'me',token:t})
+    }).then(function(r){return r.json();}).then(function(data){
+      if (data.id) { setAdminMode(true); }
+      else { sessionStorage.removeItem('sb_token'); sessionStorage.removeItem('sb_email'); }
+    }).catch(function(){});
+  }
+}
+
+// ── API HELPERS ───────────────────────────────────────────────────────────────
+function apiGet(path){
+  return fetch(API+'?path='+encodeURIComponent(path),{headers:{'Content-Type':'application/json'}}).then(function(r){return r.json();});
+}
+
+function apiPost(path,body){
+  return fetch(API+'?path='+encodeURIComponent(path),{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-user-token':userToken,'Prefer':'return=representation'},
+    body:JSON.stringify(body)
+  }).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
+}
+
+function apiPatch(path,body){
+  return fetch(API+'?path='+encodeURIComponent(path),{
+    method:'PATCH',
+    headers:{'Content-Type':'application/json','x-user-token':userToken,'Prefer':'return=representation'},
+    body:JSON.stringify(body)
+  }).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
+}
+
+function apiDelete(path){
+  return fetch(API+'?path='+encodeURIComponent(path),{
+    method:'DELETE',
+    headers:{'Content-Type':'application/json','x-user-token':userToken}
+  }).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);});
+}
+
+// ── LOAD ──────────────────────────────────────────────────────────────────────
+function loadAll(manual){
+  if (manual) showToast('🔄 Обновляем...');
+  if (!manual) document.getElementById('loader').classList.remove('hidden');
+  Promise.all([
+    apiGet('/rest/v1/topics?select=*&order=order_index.asc'),
+    apiGet('/rest/v1/subtopics?select=*&order=order_index.asc'),
+    apiGet('/rest/v1/articles?select=*&order=order_index.asc,title.asc')
+  ]).then(function(r){
+    TOPICS=r[0]; SUBTOPICS=r[1];
+    KB=r[2].map(function(row){
+      return {id:row.id,title:row.title||'',cat:row.category||'web',
+        subtopic_id:row.subtopic_id||null,media:row.media_type||null,
+        desc:row.description||'',icon:row.icon||'📄',
+        kw:row.keywords||'',media_url:row.media_url||null};
+    });
+    fuse=new Fuse(KB,fuseOpts);
+    document.getElementById('loader').classList.add('hidden');
+    renderNavTopics(); renderSubtopicSelects(); updateStats(); handleSearch(curSearch);
+    if (manual) showToast('✅ Обновлено · '+KB.length+' статей');
+  }).catch(function(err){
+    document.getElementById('loader-text').innerHTML=
+      '<div style="color:#c0522a;text-align:center;font-size:13px">❌ '+err.message
+      +'<br><br><button class="btn btn-p" onclick="loadAll(false)" style="margin-top:8px">🔄 Повторить</button></div>';
+  });
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function renderNavTopics(){
+  document.getElementById('nav-topics').innerHTML=TOPICS.map(function(topic){
+    var subs=SUBTOPICS.filter(function(s){return s.topic_id===topic.id;});
+    return '<div class="topic-group">'
+      +'<div class="topic-header open" onclick="toggleTopic(this)">'
+      +'<span style="font-size:15px">'+topic.icon+'</span>'+topic.name
+      +'<span class="topic-arrow">▶</span></div>'
+      +'<div class="topic-children open">'
+      +subs.map(function(s){
+        var cnt=KB.filter(function(a){return a.subtopic_id===s.id;}).length;
+        return '<div class="subtopic-item" id="sub-'+s.id+'" onclick="setSubtopic('+s.id+')">'
+          +'<span class="ico">'+s.icon+'</span>'+s.name+'<span class="nbadge">'+cnt+'</span></div>';
+      }).join('')
+      +'</div></div>';
+  }).join('');
+}
+
+function toggleTopic(el){el.classList.toggle('open');el.nextElementSibling.classList.toggle('open');}
+
+function setSubtopic(id){
+  curSubtopicId=id;
+  document.querySelectorAll('.subtopic-item').forEach(function(e){e.classList.remove('active');});
+  document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active');});
+  if (id){
+    var el=document.getElementById('sub-'+id); if(el)el.classList.add('active');
+    var sub=SUBTOPICS.find(function(s){return s.id===id;});
+    var topic=sub?TOPICS.find(function(t){return t.id===sub.topic_id;}):null;
+    document.getElementById('crumb').innerHTML=(topic?'<span>'+topic.icon+' '+topic.name+'</span> › ':'')+( sub?'<span>'+sub.icon+' '+sub.name+'</span>':'');
+  } else {
+    document.getElementById('nn-search').classList.add('active');
+    document.getElementById('crumb').innerHTML='';
+  }
+  handleSearch(curSearch);
+}
+
+function renderSubtopicSelects(){
+  var opts=SUBTOPICS.map(function(s){
+    var t=TOPICS.find(function(x){return x.id===s.topic_id;});
+    return '<option value="'+s.id+'">'+(t?t.icon+' '+t.name+' › ':'')+s.icon+' '+s.name+'</option>';
+  }).join('');
+  var ns=document.getElementById('n-subtopic');
+  if(ns)ns.innerHTML=opts;
+  var af=document.getElementById('admin-filter-sub');
+  if(af)af.innerHTML='<option value="">Все разделы</option>'+opts;
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+function handleSearch(val){
+  curSearch=(val||'').trim(); sugFocused=-1;
+  if(!fuse)return;
+  var results;
+  if(curSearch.length>=1){results=fuse.search(curSearch).map(function(r){return{item:r.item,score:r.score};});renderSugg(results.slice(0,6));}
+  else{results=KB.map(function(i){return{item:i,score:0};});hideSugg();}
+  results=applyFilter(results);
+  renderCards(results); renderMeta(results.length);
+}
+
+function getCurrentResults(){
+  if(!fuse)return[];
+  var r=curSearch.length>=1?fuse.search(curSearch).map(function(r){return{item:r.item,score:r.score};}):KB.map(function(i){return{item:i,score:0};});
+  return applyFilter(r);
+}
+
+function applyFilter(results){
+  return results.filter(function(r){
+    var mf=curFilter==='all'?true:curFilter==='gif'?!!r.item.media_url:r.item.cat===curFilter;
+    var ms=curSubtopicId?r.item.subtopic_id===curSubtopicId:true;
+    return mf&&ms;
+  });
+}
+
+function handleKey(e){
+  var items=document.getElementById('sugg').querySelectorAll('.sug-item');
+  if(e.key==='ArrowDown'){e.preventDefault();sugFocused=Math.min(sugFocused+1,items.length-1);updFocus(items);}
+  else if(e.key==='ArrowUp'){e.preventDefault();sugFocused=Math.max(sugFocused-1,-1);updFocus(items);}
+  else if(e.key==='Enter'&&sugFocused>=0&&items[sugFocused]){items[sugFocused].click();}
+  else if(e.key==='Escape'){clearSearch();}
+}
+function updFocus(items){items.forEach(function(el,i){el.classList.toggle('focused',i===sugFocused);});}
+function showSugg(){if(curSearch.length>=1)document.getElementById('sugg').classList.add('open');}
+function hideSugg(){document.getElementById('sugg').classList.remove('open');sugFocused=-1;}
+function clearSearch(){document.getElementById('si').value='';curSearch='';hideSugg();handleSearch('');}
+
+function getSubCat(id){var s=SUBTOPICS.find(function(x){return x.id===id;});if(!s)return'web';return s.name==='iOS'?'ios':s.name==='Android'?'android':'web';}
+function getSubName(id){var s=SUBTOPICS.find(function(x){return x.id===id;});return s?s.name:'';}
+
+function renderSugg(raw){
+  var sugg=document.getElementById('sugg');
+  var fl=applyFilter(raw);
+  if(!fl.length){hideSugg();return;}
+  var html='<div class="sug-header">Найдено в базе знаний</div>';
+  fl.slice(0,5).forEach(function(r){
+    var cat=getSubCat(r.item.subtopic_id)||r.item.cat;
+    html+='<div class="sug-item" onclick="openM('+r.item.id+');hideSugg()">'
+      +'<span style="font-size:15px;flex-shrink:0">'+r.item.icon+'</span>'
+      +'<span class="sug-text" style="flex:1">'+hlT(r.item.title)+'</span>'
+      +'<span class="sug-tag '+cat+'">'+cat.toUpperCase()+'</span>'
+      +(r.item.media_url?'<span style="font-size:11px">🎞️</span>':'')+'</div>';
+  });
+  sugg.innerHTML=html; sugg.classList.add('open');
+}
+
+// ── RENDER CARDS ──────────────────────────────────────────────────────────────
+function renderCards(results){
+  var c=document.getElementById('cards');
+  if(!results.length){
+    c.innerHTML='<div class="nores"><div class="ni">🌿</div>'
+      +'<h3>'+(curSearch?'Ничего не найдено по «'+curSearch+'»':'Здесь пока нет статей')+'</h3>'
+      +'<p>'+(curSearch?'Попробуй другие слова:':'Добавь статью через кнопку ➕')+'</p>'
+      +(curSearch?'<div class="nores-hint">'
+        +['платёж','выписка','версия','скачать'].map(function(p){
+          return '<span class="nores-chip" onclick="document.getElementById(\'si\').value=\''+p+'\';handleSearch(\''+p+'\')">'+p+'</span>';
+        }).join('')+'</div>':'')
+      +'</div>';
+    return;
+  }
+  var html='';
+  if(curSearch){
+    html='<div class="sec-label">Результаты · '+results.length+' найдено</div><div class="cards-grid">';
+    results.forEach(function(r){var sc=r.score||0;html+=cardHtml(r.item,true,sc<0.15?'🎯 Точное':sc<0.3?'✓ Похожее':'',sc<0.15?'high':'med');});
+    html+='</div>';
+  } else {
+    var groups={};
+    results.forEach(function(r){var k=r.item.subtopic_id||'none';if(!groups[k])groups[k]=[];groups[k].push(r);});
+    Object.keys(groups).forEach(function(sid){
+      var sub=SUBTOPICS.find(function(s){return s.id==sid;});
+      html+='<div class="sec-label">'+(sub?sub.icon+' '+sub.name:'Без раздела')+'</div><div class="cards-grid">';
+      groups[sid].forEach(function(r){html+=cardHtml(r.item,false,'','');});
+      html+='</div>';
+    });
+  }
+  c.innerHTML=html;
+}
+
+function cardHtml(item,snippet,ml,mc){
+  var cat=getSubCat(item.subtopic_id)||item.cat;
+  var adminBtns=isAdmin
+    ?'<div class="card-actions visible" onclick="event.stopPropagation()">'
+      +'<button class="card-act-btn" onclick="startEdit('+item.id+')" title="Редактировать">✏️</button>'
+      +'<button class="card-act-btn del" onclick="delArt('+item.id+')" title="Удалить">🗑️</button>'
+      +'</div>'
+    :'';
+  return '<div class="card '+cat+'" onclick="openM('+item.id+')">'
+    +adminBtns
+    +(item.media_url?'<div class="card-gif"><img src="'+item.media_url+'" alt="" loading="lazy"></div>':'')
+    +'<div class="card-hd"><div class="card-ico '+cat+'">'+item.icon+'</div>'
+    +'<div class="card-title">'+hlT(item.title)+'</div></div>'
+    +(snippet?'<div class="card-snippet">'+hlT(item.desc.slice(0,90))+'...</div>':'')
+    +'<div class="card-meta"><span class="tag '+cat+'">'+cat.toUpperCase()+'</span>'
+    +(item.media_url?'<span class="mbadge">🎞️ Гифка</span>':'')
+    +(ml?'<span class="match-score '+mc+'">'+ml+'</span>':'')
+    +'</div></div>';
+}
+
+function renderMeta(n){
+  var m=document.getElementById('rmeta');
+  if(!curSearch){m.innerHTML='';return;}
+  m.innerHTML='<span class="rmeta-text">Найдено: <span>'+n+'</span></span>'
+    +'<button class="rmeta-clear" onclick="clearSearch()">× Очистить</button>';
+}
+function hlT(t){if(!curSearch||curSearch.length<2)return t;return t.replace(new RegExp('('+curSearch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark>$1</mark>');}
+function setFilter(t,el){curFilter=t;document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('active');});el.classList.add('active');handleSearch(curSearch);}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function openM(id){
+  var item=KB.find(function(i){return i.id===id;});
+  if(!item)return; curItem=item; hideSugg();
+  var cat=getSubCat(item.subtopic_id)||item.cat;
+  var ico=document.getElementById('mico'); ico.textContent=item.icon; ico.className='mico '+cat;
+  document.getElementById('mtitle').textContent=item.title;
+  var tag=document.getElementById('mtag'); tag.textContent=cat.toUpperCase(); tag.className='tag '+cat;
+  var b=item.media_url
+    ?'<div class="gif-container"><img src="'+item.media_url+'" alt="Инструкция"></div>'
+    :(item.media?'<div class="vph"><div style="font-size:38px;opacity:.5">🎞️</div><div style="font-size:12px;color:var(--td);margin-top:6px">Гифка ещё не добавлена</div></div>':'');
+  b+='<div class="mdesc">'+item.desc+'</div>';
+  document.getElementById('mbody').innerHTML=b;
+  var editBtn=document.getElementById('modal-edit-btn');
+  editBtn.style.display=isAdmin?'flex':'none';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+function copyAns(){if(!curItem)return;navigator.clipboard.writeText(curItem.desc).then(function(){showToast('📋 Скопировано!');}).catch(function(){showToast('❌ Не удалось скопировать');});}
+function editFromModal(){if(curItem){closeModal();startEdit(curItem.id);}}
+
+// ── ARTICLE FORM ──────────────────────────────────────────────────────────────
+function startEdit(id){
+  if(!isAdmin){showToast('🔐 Нужна авторизация',true);return;}
+  var item=KB.find(function(i){return i.id===id;});
+  if(!item)return;
+  editingId=id; pendingFile=null; removeGif=false;
+  document.getElementById('edit-id').value=id;
+  document.getElementById('nt').value=item.title;
+  document.getElementById('nico').value=item.icon;
+  document.getElementById('nd').value=item.desc;
+  document.getElementById('nkw').value=item.kw;
+  document.getElementById('media-url-input').value='';
+  document.getElementById('n-subtopic').value=item.subtopic_id||'';
+  document.getElementById('file-preview').style.display='none';
+  document.getElementById('gif-file').value='';
+  var cgp=document.getElementById('current-gif-preview');
+  if(item.media_url){cgp.style.display='block';document.getElementById('current-gif-img').src=item.media_url;}
+  else{cgp.style.display='none';}
+  document.getElementById('form-title').textContent='✏️ Редактирование статьи';
+  document.getElementById('admin-view-title').textContent='✏️ Редактировать статью';
+  document.getElementById('save-btn').textContent='💾 Сохранить изменения';
+  showView('admin');
+  window.scrollTo(0,0);
+}
+
+function cancelEdit(){
+  editingId=null; pendingFile=null; removeGif=false;
+  clearForm();
+  document.getElementById('form-title').textContent='📝 Новая статья';
+  document.getElementById('admin-view-title').textContent='➕ Добавить статью';
+  document.getElementById('save-btn').textContent='✅ Сохранить';
+  showView('search');
+}
+
+function clearForm(){
+  ['nt','nd','nkw','nico','media-url-input'].forEach(function(id){document.getElementById(id).value='';});
+  pendingFile=null; editingId=null; removeGif=false;
+  document.getElementById('file-preview').style.display='none';
+  document.getElementById('current-gif-preview').style.display='none';
+  document.getElementById('gif-file').value='';
+}
+
+function previewFile(e){
+  var file=e.target.files[0]; if(!file)return;
+  pendingFile=file;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    document.getElementById('preview-img').src=ev.target.result;
+    document.getElementById('preview-name').textContent=file.name+' ('+Math.round(file.size/1024)+' KB)';
+    document.getElementById('file-preview').style.display='block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearFile(){pendingFile=null;document.getElementById('file-preview').style.display='none';document.getElementById('gif-file').value='';}
+function removeCurrentGif(){removeGif=true;document.getElementById('current-gif-preview').style.display='none';}
+
+function uploadFile(file){
+  return new Promise(function(resolve,reject){
+    var filename=Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    var progress=document.getElementById('upload-progress');
+    var fill=document.getElementById('progress-fill');
+    progress.classList.add('show'); fill.style.width='30%';
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      var base64=ev.target.result.split(',')[1];
+      fill.style.width='70%';
+      fetch(UPLOAD+'?filename='+encodeURIComponent(filename),{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-user-token':userToken,'x-file-type':file.type},
+        body:JSON.stringify({data:base64,filename:filename,type:file.type})
+      }).then(function(r){return r.json();}).then(function(data){
+        fill.style.width='100%';
+        setTimeout(function(){progress.classList.remove('show');fill.style.width='0%';},500);
+        resolve(data.url);
+      }).catch(reject);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function saveArticle(){
+  if(!isAdmin){showToast('🔐 Нужна авторизация',true);return;}
+  var title=document.getElementById('nt').value.trim();
+  var desc=document.getElementById('nd').value.trim();
+  if(!title||!desc){showToast('❌ Заполни заголовок и описание',true);return;}
+  var subtopic_id=parseInt(document.getElementById('n-subtopic').value)||null;
+  var icon=document.getElementById('nico').value.trim()||'📄';
+  var kw=document.getElementById('nkw').value.trim();
+  var manualUrl=document.getElementById('media-url-input').value.trim();
+  var sub=SUBTOPICS.find(function(s){return s.id===subtopic_id;});
+  var cat=sub?(sub.name==='iOS'?'ios':sub.name==='Android'?'android':'web'):'web';
+  var btn=document.getElementById('save-btn');
+  btn.disabled=true; btn.textContent='Сохраняем...';
+
+  function persist(mediaUrl){
+    var currentItem=editingId?KB.find(function(i){return i.id===editingId;}):null;
+    var finalUrl=mediaUrl!==undefined?mediaUrl:(removeGif?null:(currentItem?currentItem.media_url:null));
+    var payload={title:title,category:cat,subtopic_id:subtopic_id,description:desc,
+      icon:icon,keywords:kw,media_url:finalUrl,media_type:finalUrl?'gif':null};
+    var p=editingId
+      ?apiPatch('/rest/v1/articles?id=eq.'+editingId,payload)
+      :apiPost('/rest/v1/articles',payload);
+    p.then(function(){
+      clearForm();
+      btn.disabled=false; btn.textContent='✅ Сохранить';
+      document.getElementById('form-title').textContent='📝 Новая статья';
+      document.getElementById('admin-view-title').textContent='➕ Добавить статью';
+      showToast(editingId?'✅ Статья обновлена!':'✅ Статья добавлена!');
+      editingId=null;
+      loadAll(false); setTimeout(renderAdminList,1200);
+    }).catch(function(err){btn.disabled=false;btn.textContent='✅ Сохранить';showToast('❌ '+err.message,true);});
+  }
+
+  if(pendingFile){uploadFile(pendingFile).then(function(url){persist(url);}).catch(function(err){btn.disabled=false;btn.textContent='✅ Сохранить';showToast('❌ Ошибка загрузки: '+err.message,true);});}
+  else{persist(manualUrl||undefined);}
+}
+
+function delArt(id){
+  if(!isAdmin)return;
+  if(!confirm('Удалить эту статью?'))return;
+  apiDelete('/rest/v1/articles?id=eq.'+id)
+    .then(function(){showToast('🗑️ Удалено');loadAll(false);setTimeout(renderAdminList,800);})
+    .catch(function(err){showToast('❌ '+err.message,true);});
+}
+
+// ── ADMIN LIST ────────────────────────────────────────────────────────────────
+function renderAdminList(){
+  var filterSub=document.getElementById('admin-filter-sub');
+  var searchTerm=document.getElementById('admin-search');
+  var filterVal=filterSub?parseInt(filterSub.value)||null:null;
+  var q=searchTerm?searchTerm.value.toLowerCase():'';
+  document.getElementById('ac').textContent=KB.length;
+  var items=KB.filter(function(i){
+    var ms=filterVal?i.subtopic_id===filterVal:true;
+    var mq=q?i.title.toLowerCase().includes(q):true;
+    return ms&&mq;
+  });
+  if(!items.length){document.getElementById('alist').innerHTML='<div style="padding:16px;text-align:center;color:var(--tm);font-size:13px">Нет статей</div>';return;}
+  document.getElementById('alist').innerHTML=items.map(function(item){
+    var cat=getSubCat(item.subtopic_id)||item.cat;
+    var sub=SUBTOPICS.find(function(s){return s.id===item.subtopic_id;});
+    return '<div class="alist-item">'
+      +(item.media_url?'<img class="alist-gif" src="'+item.media_url+'" alt="">':'<div class="alist-ico">'+item.icon+'</div>')
+      +'<div class="alist-info">'
+      +'<div class="alist-title">'+item.title+'</div>'
+      +'<div class="alist-sub"><span class="tag '+cat+'" style="font-size:9px">'+cat.toUpperCase()+'</span>'+(sub?' · '+sub.icon+' '+sub.name:'')+'</div>'
+      +'</div>'
+      +'<button class="act-btn" onclick="startEdit('+item.id+')">✏️</button>'
+      +'<button class="act-btn del" onclick="delArt('+item.id+')">🗑️</button>'
+      +'</div>';
+  }).join('');
+}
+
+// ── TOPIC MGMT ────────────────────────────────────────────────────────────────
+function renderMgmtTopics(){
+  document.getElementById('mgmt-topics').innerHTML=TOPICS.map(function(topic){
+    var subs=SUBTOPICS.filter(function(s){return s.topic_id===topic.id;});
+    return '<div class="topic-section">'
+      +'<div class="topic-section-title">'+topic.icon+' '+topic.name
+      +'<button class="act-btn del" onclick="delTopic('+topic.id+')" style="margin-left:auto">Удалить топик</button></div>'
+      +subs.map(function(s){
+        return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'
+          +'<span>'+s.icon+'</span><span style="flex:1;font-size:13px">'+s.name+'</span>'
+          +'<button class="act-btn del" onclick="delSubtopic('+s.id+')">Удалить</button></div>';
+      }).join('')
+      +'<div class="mgmt-row" style="margin-top:10px">'
+      +'<input type="text" placeholder="🍎" style="max-width:60px;flex:none" id="si-'+topic.id+'">'
+      +'<input type="text" placeholder="Название подтопика" id="sn-'+topic.id+'">'
+      +'<button class="btn btn-p" onclick="addSubtopic('+topic.id+')" style="padding:8px 14px;font-size:12px;flex:none">+ Добавить</button>'
+      +'</div></div>';
+  }).join('');
+}
+
+function addTopic(){
+  if(!isAdmin){showToast('🔐 Нужна авторизация',true);return;}
+  var name=document.getElementById('new-topic-name').value.trim();
+  var icon=document.getElementById('new-topic-icon').value.trim()||'📁';
+  if(!name){showToast('❌ Введи название',true);return;}
+  apiPost('/rest/v1/topics',{name:name,icon:icon,order_index:TOPICS.length+1})
+    .then(function(){document.getElementById('new-topic-name').value='';showToast('✅ Топик добавлен');loadAll(false);setTimeout(renderMgmtTopics,800);})
+    .catch(function(err){showToast('❌ '+err.message,true);});
+}
+
+function addSubtopic(topicId){
+  if(!isAdmin){showToast('🔐 Нужна авторизация',true);return;}
+  var name=document.getElementById('sn-'+topicId).value.trim();
+  var icon=document.getElementById('si-'+topicId).value.trim()||'📂';
+  if(!name){showToast('❌ Введи название',true);return;}
+  apiPost('/rest/v1/subtopics',{topic_id:topicId,name:name,icon:icon,order_index:SUBTOPICS.length+1})
+    .then(function(){showToast('✅ Подтопик добавлен');loadAll(false);setTimeout(renderMgmtTopics,800);})
+    .catch(function(err){showToast('❌ '+err.message,true);});
+}
+
+function delTopic(id){
+  if(!isAdmin)return;
+  if(!confirm('Удалить топик и все его подтопики?'))return;
+  apiDelete('/rest/v1/topics?id=eq.'+id)
+    .then(function(){showToast('🗑️ Топик удалён');loadAll(false);setTimeout(renderMgmtTopics,800);})
+    .catch(function(err){showToast('❌ '+err.message,true);});
+}
+
+function delSubtopic(id){
+  if(!isAdmin)return;
+  if(!confirm('Удалить подтопик?'))return;
+  apiDelete('/rest/v1/subtopics?id=eq.'+id)
+    .then(function(){showToast('🗑️ Подтопик удалён');loadAll(false);setTimeout(renderMgmtTopics,800);})
+    .catch(function(err){showToast('❌ '+err.message,true);});
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+function updateStats(){
+  var total=KB.length,gifs=KB.filter(function(i){return!!i.media_url;}).length;
+  var ios=KB.filter(function(i){return getSubCat(i.subtopic_id)==='ios';}).length;
+  var and_=KB.filter(function(i){return getSubCat(i.subtopic_id)==='android';}).length;
+  var web=KB.filter(function(i){return getSubCat(i.subtopic_id)==='web';}).length;
+  document.getElementById('sv-total').textContent=total;
+  document.getElementById('sv-gif').textContent=gifs;
+  document.getElementById('sv-ia').textContent=ios+' / '+and_;
+  document.getElementById('sv-web').textContent=web;
+  document.getElementById('tc').textContent=total+' статей';
+}
+
+// ── VIEW ──────────────────────────────────────────────────────────────────────
+function showView(v){
+  var views={search:'vSearch',admin:'vAdmin',mgmt:'vMgmt'};
+  Object.keys(views).forEach(function(k){
+    var el=document.getElementById(views[k]); if(!el)return;
+    el.style.display=k===v?(k==='search'?'flex':'block'):'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  var m={search:'nn-search',admin:'nn-admin',mgmt:'nn-mgmt'};
+  if(m[v])document.getElementById(m[v]).classList.add('active');
+  if(v==='admin')renderAdminList();
+  if(v==='mgmt')renderMgmtTopics();
+  if(window.innerWidth<=768){var sb=document.getElementById('sidebar');var ov=document.getElementById('sidebar-overlay');sb.classList.remove('open');ov.classList.remove('open');}
+}
+
+// ── SIDEBAR MOBILE ────────────────────────────────────────────────────────────
+function toggleSidebar(){
+  var sb=document.getElementById('sidebar');
+  var ov=document.getElementById('sidebar-overlay');
+  var open=sb.classList.toggle('open');
+  ov.classList.toggle('open',open);
+  document.body.style.overflow=open?'hidden':'';
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function showToast(msg,err){
+  var t=document.getElementById('toast');
+  document.getElementById('tmsg').textContent=msg;
+  t.className='toast'+(err?' err':'');
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(function(){t.classList.remove('show');},3000);
+}
+
+// ── KEYBOARD ──────────────────────────────────────────────────────────────────
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();showView('search');document.getElementById('si').focus();}
+  if(e.key==='Escape'){closeModal();clearSearch();}
+});
+document.addEventListener('click',function(e){if(!document.getElementById('sbar').contains(e.target))hideSugg();});
+
+// ── DRAG & DROP UPLOAD ────────────────────────────────────────────────────────
+var uz=document.getElementById('upzone');
+uz.addEventListener('dragover',function(e){e.preventDefault();uz.classList.add('dragover');});
+uz.addEventListener('dragleave',function(){uz.classList.remove('dragover');});
+uz.addEventListener('drop',function(e){
+  e.preventDefault();uz.classList.remove('dragover');
+  var file=e.dataTransfer.files[0];
+  if(file){pendingFile=file;previewFile({target:{files:[file]}});}
+});
+
+// ── UPLOAD FUNCTION FIX ───────────────────────────────────────────────────────
+// Override uploadFile to use base64 body correctly
+uploadFile=function(file){
+  return new Promise(function(resolve,reject){
+    var filename=Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    var progress=document.getElementById('upload-progress');
+    var fill=document.getElementById('progress-fill');
+    progress.classList.add('show'); fill.style.width='40%';
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      var base64=ev.target.result.split(',')[1];
+      fill.style.width='80%';
+      fetch(UPLOAD+'?filename='+encodeURIComponent(filename),{
+        method:'POST',
+        headers:{'Content-Type':'application/octet-stream','x-user-token':userToken,'x-file-type':file.type},
+        body:Uint8Array.from(atob(base64),function(c){return c.charCodeAt(0);})
+      }).then(function(r){return r.json();}).then(function(data){
+        fill.style.width='100%';
+        setTimeout(function(){progress.classList.remove('show');fill.style.width='0%';},500);
+        if(!data.url)throw new Error('No URL returned');
+        resolve(data.url);
+      }).catch(reject);
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.getElementById('vSearch').style.display='flex';
+document.getElementById('vAdmin').style.display='none';
+document.getElementById('vMgmt').style.display='none';
+checkSavedSession();
+loadAll(false);
+</script>
+</body>
+</html>
