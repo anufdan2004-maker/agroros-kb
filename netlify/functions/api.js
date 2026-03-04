@@ -11,7 +11,6 @@ exports.handler = async function(event) {
     return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized' }) };
   }
 
-  // Берём path напрямую из строки запроса без декодирования
   const rawQuery = event.rawQuery || '';
   const pathMatch = rawQuery.match(/path=(.+)/);
   if (!pathMatch) {
