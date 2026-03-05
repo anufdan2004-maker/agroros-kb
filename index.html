@@ -695,12 +695,25 @@ function applyData(data){
   renderNavTopics(); renderSubtopicSelects(); updateStats(); handleSearch(curSearch);
 }
 
+function fetchWithTimeout(url, opts, ms) {
+  var controller = new AbortController();
+  var timer = setTimeout(function(){ controller.abort(); }, ms||8000);
+  return fetch(url, Object.assign({}, opts, {signal: controller.signal}))
+    .finally(function(){ clearTimeout(timer); });
+}
+
+function apiGetFast(path){
+  return fetchWithTimeout(PROXY+'?path='+encodeURIComponent(path), {}, 8000)
+    .then(function(r){
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.json();
+    });
+}
+
 function fetchFresh(){
-  // Один запрос — всё вложенно через Supabase select
-  // topics -> subtopics -> articles — всё за один round-trip
   return Promise.all([
-    apiGet('/rest/v1/topics?select=*,subtopics(*)&order=order_index.asc'),
-    apiGet('/rest/v1/articles?select=*&order=order_index.asc,title.asc')
+    apiGetFast('/rest/v1/topics?select=*,subtopics(*)&order=order_index.asc'),
+    apiGetFast('/rest/v1/articles?select=*&order=order_index.asc,title.asc')
   ]).then(function(r){
     var topicsWithSubs = Array.isArray(r[0]) ? r[0] : [];
     var topics = topicsWithSubs.map(function(t){ return {id:t.id,name:t.name,icon:t.icon,order_index:t.order_index}; });
@@ -744,8 +757,9 @@ function loadAll(manual){
     fetchFresh().then(function(data){
       applyData(data);
     }).catch(function(err){
+      var msg = err.name === 'AbortError' ? 'Превышено время ожидания (8 сек). Проверь соединение.' : err.message;
       document.getElementById('loader-text').innerHTML =
-        '<div style="color:#c0522a;text-align:center;font-size:13px">❌ ' + err.message
+        '<div style="color:#c0522a;text-align:center;font-size:13px">❌ ' + msg
         + '<br><br><button class="btn btn-p" onclick="loadAll(false)" style="margin-top:8px">🔄 Повторить</button></div>';
     });
   }
