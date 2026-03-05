@@ -535,8 +535,11 @@ mark{background:rgba(61,122,74,.15);color:var(--ac);border-radius:3px;padding:0 
 
 <script>
 // ── CONFIG ───────────────────────────────────────────────────────────────────
-var API = 'https://jvjsorcgunzxtuwrchww.supabase.co/functions/v1/api';
-var AUTH = 'https://jvjsorcgunzxtuwrchww.supabase.co/functions/v1/auth';
+// Прямые запросы к Supabase — без прокси, максимальная скорость
+var SB_URL = 'https://jvjsorcgunzxtuwrchww.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2anNvcmNndW56eHR1d3JjaHd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MDIwOTcsImV4cCI6MjA4ODE3ODA5N30.zfTmycvrRTgLb8JtzD2IH6-jTLMVYnkRTlDUc06iSN4';
+var SB_H = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+// Edge Functions нужны только для загрузки файлов (auth идёт напрямую)
 var UPLOAD = 'https://jvjsorcgunzxtuwrchww.supabase.co/functions/v1/upload';
 
 // ── STATE ────────────────────────────────────────────────────────────────────
@@ -559,12 +562,15 @@ function doLogin(){
   var err=document.getElementById('login-err');
   err.classList.remove('show');
   btn.disabled=true; btn.textContent='Входим...';
-  fetch(AUTH,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'login',email:email,password:pass})
+  // Прямой запрос к Supabase Auth
+  fetch(SB_URL+'/auth/v1/token?grant_type=password',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SB_KEY},
+    body:JSON.stringify({email:email,password:pass})
   }).then(function(r){return r.json();}).then(function(data){
     if (data.access_token) {
       userToken=data.access_token;
-      userEmail=data.user?.email||email;
+      userEmail=(data.user&&data.user.email)||email;
       sessionStorage.setItem('sb_token', userToken);
       sessionStorage.setItem('sb_email', userEmail);
       setAdminMode(true);
@@ -606,40 +612,43 @@ function checkSavedSession(){
   var e=sessionStorage.getItem('sb_email');
   if (t) {
     userToken=t; userEmail=e;
-    fetch(AUTH,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'me',token:t})
+    // Проверяем токен напрямую
+    fetch(SB_URL+'/auth/v1/user',{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+t}
     }).then(function(r){return r.json();}).then(function(data){
       if (data.id) { setAdminMode(true); }
-      else { sessionStorage.removeItem('sb_token'); sessionStorage.removeItem('sb_email'); }
+      else { sessionStorage.removeItem('sb_token'); sessionStorage.removeItem('sb_email'); userToken=null; }
     }).catch(function(){});
   }
 }
 
 // ── API HELPERS ───────────────────────────────────────────────────────────────
+// ── ПРЯМЫЕ ЗАПРОСЫ К SUPABASE (без прокси) ──────────────────────────────────
 function apiGet(path){
-  return fetch(API+'?path='+encodeURIComponent(path),{headers:{'Content-Type':'application/json'}}).then(function(r){return r.json();});
+  return fetch(SB_URL+path,{headers:SB_H}).then(function(r){return r.json();});
+}
+
+function authHeaders(){
+  var h = Object.assign({},SB_H,{'Prefer':'return=representation'});
+  if(userToken) h['Authorization']='Bearer '+userToken;
+  return h;
 }
 
 function apiPost(path,body){
-  return fetch(API+'?path='+encodeURIComponent(path),{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-user-token':userToken,'Prefer':'return=representation'},
-    body:JSON.stringify(body)
+  return fetch(SB_URL+path,{
+    method:'POST', headers:authHeaders(), body:JSON.stringify(body)
   }).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
 }
 
 function apiPatch(path,body){
-  return fetch(API+'?path='+encodeURIComponent(path),{
-    method:'PATCH',
-    headers:{'Content-Type':'application/json','x-user-token':userToken,'Prefer':'return=representation'},
-    body:JSON.stringify(body)
+  return fetch(SB_URL+path,{
+    method:'PATCH', headers:authHeaders(), body:JSON.stringify(body)
   }).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
 }
 
 function apiDelete(path){
-  return fetch(API+'?path='+encodeURIComponent(path),{
-    method:'DELETE',
-    headers:{'Content-Type':'application/json','x-user-token':userToken}
+  return fetch(SB_URL+path,{
+    method:'DELETE', headers:authHeaders()
   }).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);});
 }
 
@@ -662,12 +671,17 @@ function applyData(data){
 }
 
 function fetchFresh(){
+  // Один запрос — всё вложенно через Supabase select
+  // topics -> subtopics -> articles — всё за один round-trip
   return Promise.all([
-    apiGet('/rest/v1/topics?select=*&order=order_index.asc'),
-    apiGet('/rest/v1/subtopics?select=*&order=order_index.asc'),
-    apiGet('/rest/v1/articles?select=*&order=order_index.asc,title.asc')
+    fetch(SB_URL+'/rest/v1/topics?select=*,subtopics(*)&order=order_index.asc', {headers:SB_H}).then(function(r){return r.json();}),
+    fetch(SB_URL+'/rest/v1/articles?select=*&order=order_index.asc,title.asc', {headers:SB_H}).then(function(r){return r.json();})
   ]).then(function(r){
-    var data = { topics: r[0], subtopics: r[1], articles: r[2], ts: Date.now() };
+    var topicsWithSubs = Array.isArray(r[0]) ? r[0] : [];
+    var topics = topicsWithSubs.map(function(t){ return {id:t.id,name:t.name,icon:t.icon,order_index:t.order_index}; });
+    var subtopics = [];
+    topicsWithSubs.forEach(function(t){ (t.subtopics||[]).forEach(function(s){ subtopics.push(s); }); });
+    var data = { topics: topics, subtopics: subtopics, articles: Array.isArray(r[1])?r[1]:[], ts: Date.now() };
     try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch(e){}
     return data;
   });
@@ -1352,9 +1366,9 @@ function handleSearch(val) {
 function doFtsSearch(q) {
   // PostgreSQL FTS — понимает русскую морфологию
   var ftsQuery = q.trim().split(/\s+/).map(function(w){return w+':*';}).join(' & ');
-  var path = '/rest/v1/articles?select=*&search_vector=fts(russian).'+encodeURIComponent(ftsQuery)+'&order=title.asc';
+  var path = SB_URL+'/rest/v1/articles?select=*&search_vector=fts(russian).'+encodeURIComponent(ftsQuery)+'&order=title.asc';
 
-  apiGet(path).then(function(rows) {
+  fetch(path,{headers:SB_H}).then(function(r){return r.json();}).then(function(rows) {
     if (!Array.isArray(rows) || !rows.length) {
       // Fallback на fuse если FTS ничего не нашёл
       var fallback = fuse.search(q).map(function(r){return{item:r.item,score:r.score};});
@@ -1387,9 +1401,9 @@ function logSearch(q, count) {
   if (!q || q.length < 2) return;
   clearTimeout(logTimer);
   logTimer = setTimeout(function(){
-    fetch(API+'?path='+encodeURIComponent('/rest/v1/search_logs'), {
+    fetch(SB_URL+'/rest/v1/search_logs', {
       method: 'POST',
-      headers: {'Content-Type':'application/json', 'Prefer':'return=minimal'},
+      headers: Object.assign({},SB_H,{'Prefer':'return=minimal'}),
       body: JSON.stringify({query: q, results_count: count})
     }).catch(function(){});
   }, 1000);
