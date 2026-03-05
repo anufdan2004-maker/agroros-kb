@@ -960,8 +960,7 @@ function renderStepsBuilder() {
       + '🎞️ Прикрепить гифку к шагу (необязательно)'
       + '</div>'
       + (step.media_url ? '<div class="step-gif-preview"><img src="'+step.media_url+'"><br>'
-        + '<button class="btn btn-g" onclick="stepsData['+i+'].media_url='';stepsData['+i+'].pendingFile=null;renderStepsBuilder()" '
-        + 'style="font-size:11px;padding:4px 10px;margin-top:4px">✕ Удалить гифку</button></div>' : '')
+        + '<button class="btn btn-g" onclick="clearStepMedia('+i+')" style="font-size:11px;padding:4px 10px;margin-top:4px">✕ Удалить гифку</button></div>' : '')
       + (step.pendingFile ? '<div style="font-size:11px;color:var(--ac);margin-top:6px">📎 '+step.pendingFile.name+'</div>' : '')
       + '</div>';
   }).join('');
@@ -982,6 +981,12 @@ function handleStepFile(e, idx) {
     renderStepsBuilder();
   };
   reader.readAsDataURL(file);
+}
+
+function clearStepMedia(idx) {
+  stepsData[idx].media_url = '';
+  stepsData[idx].pendingFile = null;
+  renderStepsBuilder();
 }
 
 function clearSteps() {
