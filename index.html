@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Агророс — База знаний</title>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
 <style>
 :root{
   --bg:#f4f0eb;--bg2:#ede7df;--surface:#fff;--surface2:#faf7f4;--surface3:#f0ebe4;
@@ -543,13 +542,12 @@ var SB_H = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'B
 var UPLOAD = 'https://jvjsorcgunzxtuwrchww.supabase.co/functions/v1/upload';
 
 // ── STATE ────────────────────────────────────────────────────────────────────
-var KB=[], TOPICS=[], SUBTOPICS=[], fuse=null;
+var KB=[], TOPICS=[], SUBTOPICS=[];
 var curFilter='all', curSearch='', curItem=null, sugFocused=-1, curSubtopicId=null;
 var pendingFile=null, editingId=null, removeGif=false;
 var userToken=null, userEmail=null, isAdmin=false;
 
-var fuseOpts={includeScore:true,threshold:0.42,ignoreLocation:true,minMatchCharLength:2,
-  keys:[{name:'title',weight:0.6},{name:'keywords',weight:0.3},{name:'description',weight:0.1}]};
+
 
 // ── AUTH ─────────────────────────────────────────────────────────────────────
 function openLogin(){ document.getElementById('login-screen').classList.add('open'); setTimeout(function(){document.getElementById('login-email').focus();},100); }
@@ -656,6 +654,35 @@ function apiDelete(path){
 var CACHE_KEY = 'agroros_kb_cache';
 var CACHE_TTL = 5 * 60 * 1000; // 5 минут
 
+// ── ПОИСК БЕЗ ВНЕШНИХ ЗАВИСИМОСТЕЙ ──────────────────────────────────────────
+function localSearch(query) {
+  var q = (query||'').toLowerCase().trim();
+  if (!q) return KB.map(function(i){return{item:i,score:0};});
+  var words = q.split(' ').filter(function(w){return w.length>0;});
+  var results = [];
+  KB.forEach(function(item) {
+    var title = (item.title||'').toLowerCase();
+    var kw    = (item.kw||'').toLowerCase();
+    var desc  = (item.desc||'').toLowerCase();
+    var score = 0;
+    words.forEach(function(w) {
+      // Точное совпадение в начале заголовка
+      if (title.indexOf(w) === 0)        score += 12;
+      else if (title.indexOf(w) !== -1)  score += 7;
+      if (kw.indexOf(w) !== -1)          score += 4;
+      if (desc.indexOf(w) !== -1)        score += 1;
+      // Частичное — первые 3 символа
+      if (w.length >= 3) {
+        var p = w.slice(0, 3);
+        if (title.indexOf(p) !== -1)     score += 2;
+        if (kw.indexOf(p) !== -1)        score += 1;
+      }
+    });
+    if (score > 0) results.push({item:item, score:score});
+  });
+  return results.sort(function(a,b){return b.score - a.score;});
+}
+
 function applyData(data){
   TOPICS = data.topics;
   SUBTOPICS = data.subtopics;
@@ -663,9 +690,8 @@ function applyData(data){
     return {id:row.id,title:row.title||'',cat:row.category||'web',
       subtopic_id:row.subtopic_id||null,media:row.media_type||null,
       desc:row.description||'',icon:row.icon||'📄',
-      kw:row.keywords||'',media_url:row.media_url||null};
+      kw:row.keywords||'',media_url:row.media_url||null,steps:row.steps||[]};
   });
-  fuse = new Fuse(KB, fuseOpts);
   document.getElementById('loader').classList.add('hidden');
   renderNavTopics(); renderSubtopicSelects(); updateStats(); handleSearch(curSearch);
 }
@@ -773,20 +799,10 @@ function renderSubtopicSelects(){
   if(af)af.innerHTML='<option value="">Все разделы</option>'+opts;
 }
 
-// ── SEARCH ────────────────────────────────────────────────────────────────────
-function handleSearch(val){
-  curSearch=(val||'').trim(); sugFocused=-1;
-  if(!fuse)return;
-  var results;
-  if(curSearch.length>=1){results=fuse.search(curSearch).map(function(r){return{item:r.item,score:r.score};});renderSugg(results.slice(0,6));}
-  else{results=KB.map(function(i){return{item:i,score:0};});hideSugg();}
-  results=applyFilter(results);
-  renderCards(results); renderMeta(results.length);
-}
+
 
 function getCurrentResults(){
-  if(!fuse)return[];
-  var r=curSearch.length>=1?fuse.search(curSearch).map(function(r){return{item:r.item,score:r.score};}):KB.map(function(i){return{item:i,score:0};});
+  var r = curSearch.length>=1 ? localSearch(curSearch) : KB.map(function(i){return{item:i,score:0};});
   return applyFilter(r);
 }
 
@@ -1347,11 +1363,10 @@ var ftsTimer = null;
 
 function handleSearch(val) {
   curSearch = (val||'').trim(); sugFocused = -1;
-  if (!fuse) return;
 
   // Локальный fuse для подсказок — мгновенно
   if (curSearch.length >= 1) {
-    var local = fuse.search(curSearch).map(function(r){return{item:r.item,score:r.score};});
+    var local = localSearch(curSearch);
     renderSugg(local.slice(0,6));
   } else {
     hideSugg();
@@ -1376,7 +1391,7 @@ function doFtsSearch(q) {
   fetch(path,{headers:SB_H}).then(function(r){return r.json();}).then(function(rows) {
     if (!Array.isArray(rows) || !rows.length) {
       // Fallback на fuse если FTS ничего не нашёл
-      var fallback = fuse.search(q).map(function(r){return{item:r.item,score:r.score};});
+      var fallback = localSearch(q);
       fallback = applyFilter(fallback);
       renderCards(fallback); renderMeta(fallback.length);
       logSearch(q, fallback.length);
@@ -1394,7 +1409,7 @@ function doFtsSearch(q) {
     logSearch(q, results.length);
   }).catch(function() {
     // При ошибке FTS — локальный поиск
-    var fallback = fuse.search(q).map(function(r){return{item:r.item,score:r.score};});
+    var fallback = localSearch(q);
     fallback = applyFilter(fallback);
     renderCards(fallback); renderMeta(fallback.length);
   });
