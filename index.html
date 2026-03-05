@@ -294,6 +294,36 @@ textarea{resize:vertical;min-height:90px}
 .sv{display:flex;flex-direction:column}
 .sv.hidden{display:none}
 mark{background:rgba(61,122,74,.15);color:var(--ac);border-radius:3px;padding:0 2px;font-style:normal}
+
+/* ── STEPS ── */
+.step-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px;position:relative}
+.step-card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--ac);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Unbounded',sans-serif}
+.step-del{position:absolute;top:12px;right:12px;background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;padding:3px 8px;color:var(--td);transition:all .15s;font-family:inherit}
+.step-del:hover{border-color:var(--danger);color:var(--danger);background:var(--danger-l)}
+.step-move{display:flex;flex-direction:column;gap:2px;margin-left:auto;margin-right:32px}
+.step-move button{background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:10px;padding:2px 6px;color:var(--tm);transition:all .15s;line-height:1}
+.step-move button:hover{background:var(--surface3);color:var(--t)}
+
+/* Step render in modal */
+.steps-list{margin-top:16px;display:flex;flex-direction:column;gap:20px}
+.step-item{display:flex;flex-direction:column;gap:10px}
+.step-item-hdr{display:flex;align-items:center;gap:10px}
+.step-badge{width:26px;height:26px;border-radius:50%;background:var(--ac);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Unbounded',sans-serif}
+.step-title{font-size:13.5px;font-weight:700;color:var(--t)}
+.step-text{font-size:13.5px;color:var(--t);line-height:1.7;padding-left:36px}
+.step-gif{width:100%;border-radius:10px;overflow:hidden;box-shadow:var(--sh);margin-top:4px}
+.step-gif img{width:100%;display:block;max-height:280px;object-fit:contain;background:var(--surface3)}
+.step-divider{height:1px;background:var(--border);margin-top:4px}
+.steps-label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--td);font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.steps-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* Step upzone (mini) */
+.step-upzone{border:2px dashed var(--border2);border-radius:var(--rs);padding:12px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);position:relative;font-size:12px;color:var(--tm)}
+.step-upzone:hover{border-color:var(--ac);background:var(--ac-l);color:var(--ac)}
+.step-upzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.step-gif-preview{margin-top:8px;border-radius:6px;overflow:hidden;max-height:100px}
+.step-gif-preview img{width:100%;max-height:100px;object-fit:cover;display:block}
 </style>
 </head>
 <body>
@@ -404,22 +434,24 @@ mark{background:rgba(61,122,74,.15);color:var(--ac);border-radius:3px;padding:0 
         <div class="fg full"><label>Ответ / описание</label><textarea id="nd" placeholder="Напиши подробный ответ или пошаговую инструкцию..."></textarea></div>
         <div class="fg full"><label>Ключевые слова</label><input type="text" id="nkw" placeholder="платёж поручение перевод создать"></div>
       </div>
-      <div style="margin-bottom:14px">
-        <label style="display:block;margin-bottom:6px">Гифка / изображение</label>
+
+      <!-- ГЛАВНАЯ ГИФКА -->
+      <div style="margin-bottom:20px">
+        <label style="display:block;margin-bottom:6px">Главная гифка / изображение</label>
         <div class="upzone" id="upzone">
           <input type="file" id="gif-file" accept="image/*,.gif" onchange="previewFile(event)">
           <div class="ui">🎞️</div>
           <div class="ut">Перетащи гифку или нажми для выбора</div>
-          <div class="us">GIF, PNG, JPG · рекомендуем GIF для инструкций</div>
+          <div class="us">GIF, PNG, JPG</div>
           <div class="progress-bar" id="upload-progress"><div class="progress-fill" id="progress-fill"></div></div>
         </div>
         <div id="file-preview" style="display:none">
           <div class="upload-preview"><img id="preview-img" src=""></div>
           <div class="upload-name" id="preview-name"></div>
-          <button class="btn btn-g" onclick="clearFile()" style="margin-top:8px;font-size:12px;padding:6px 12px">✕ Убрать файл</button>
+          <button class="btn btn-g" onclick="clearFile()" style="margin-top:8px;font-size:12px;padding:6px 12px">✕ Убрать</button>
         </div>
         <div style="margin-top:8px">
-          <label style="display:block;margin-bottom:5px">Или ссылка на уже загруженную гифку</label>
+          <label style="display:block;margin-bottom:5px">Или вставь ссылку</label>
           <input type="text" id="media-url-input" placeholder="https://...">
         </div>
         <div id="current-gif-preview" style="display:none;margin-top:8px">
@@ -428,6 +460,17 @@ mark{background:rgba(61,122,74,.15);color:var(--ac);border-radius:3px;padding:0 
           <button class="btn btn-g" onclick="removeCurrentGif()" style="margin-top:6px;font-size:12px;padding:6px 12px">✕ Удалить гифку</button>
         </div>
       </div>
+
+      <!-- ПОШАГОВЫЕ ИНСТРУКЦИИ -->
+      <div style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <label>Пошаговая инструкция (необязательно)</label>
+          <button class="btn btn-g" onclick="addStep()" style="font-size:12px;padding:6px 12px">+ Добавить шаг</button>
+        </div>
+        <div class="hint" style="margin-bottom:10px">К каждому шагу можно прикрепить гифку.</div>
+        <div id="steps-builder"></div>
+      </div>
+
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-p" id="save-btn" onclick="saveArticle()">✅ Сохранить</button>
         <button class="btn btn-g" onclick="cancelEdit()">Отмена</button>
@@ -481,6 +524,7 @@ mark{background:rgba(61,122,74,.15);color:var(--ac);border-radius:3px;padding:0 
     <div class="mbody" id="mbody"></div>
     <div class="mftr" id="mftr">
       <button class="btn btn-p" onclick="copyAns()">📋 Скопировать ответ</button>
+      <button class="btn btn-g" onclick="shareArticle()">🔗 Поделиться</button>
       <button class="btn btn-g" id="modal-edit-btn" onclick="editFromModal()" style="display:none">✏️ Редактировать</button>
       <button class="btn btn-g" onclick="closeModal()">Закрыть</button>
     </div>
@@ -840,10 +884,10 @@ function openM(id){
   var ico=document.getElementById('mico'); ico.textContent=item.icon; ico.className='mico '+cat;
   document.getElementById('mtitle').textContent=item.title;
   var tag=document.getElementById('mtag'); tag.textContent=cat.toUpperCase(); tag.className='tag '+cat;
-  var b=item.media_url
-    ?'<div class="gif-container"><img src="'+item.media_url+'" alt="Инструкция"></div>'
-    :(item.media?'<div class="vph"><div style="font-size:38px;opacity:.5">🎞️</div><div style="font-size:12px;color:var(--td);margin-top:6px">Гифка ещё не добавлена</div></div>':'');
-  b+='<div class="mdesc">'+item.desc+'</div>';
+  var b='';
+  if(item.media_url) b+='<div class="gif-container"><img src="'+item.media_url+'" alt="Инструкция"></div>';
+  if(item.desc) b+='<div class="mdesc">'+item.desc+'</div>';
+  if(item.steps&&item.steps.length) b+=renderStepsHtml(item.steps);
   document.getElementById('mbody').innerHTML=b;
   var editBtn=document.getElementById('modal-edit-btn');
   editBtn.style.display=isAdmin?'flex':'none';
@@ -852,6 +896,117 @@ function openM(id){
 function closeModal(){document.getElementById('modal').classList.remove('open');}
 function copyAns(){if(!curItem)return;navigator.clipboard.writeText(curItem.desc).then(function(){showToast('📋 Скопировано!');}).catch(function(){showToast('❌ Не удалось скопировать');});}
 function editFromModal(){if(curItem){closeModal();startEdit(curItem.id);}}
+
+
+// ── STEPS BUILDER ────────────────────────────────────────────────────────────
+var stepsData = []; // [{title, text, media_url, pendingFile}]
+
+function addStep(data) {
+  var idx = stepsData.length;
+  stepsData.push(data || {title:'', text:'', media_url:'', pendingFile:null});
+  renderStepsBuilder();
+}
+
+function removeStep(idx) {
+  stepsData.splice(idx, 1);
+  renderStepsBuilder();
+}
+
+function moveStep(idx, dir) {
+  var newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= stepsData.length) return;
+  var tmp = stepsData[idx];
+  stepsData[idx] = stepsData[newIdx];
+  stepsData[newIdx] = tmp;
+  renderStepsBuilder();
+}
+
+function renderStepsBuilder() {
+  var el = document.getElementById('steps-builder');
+  if (!stepsData.length) {
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--td);font-size:13px;border:2px dashed var(--border);border-radius:var(--r)">Нет шагов — нажми «+ Добавить шаг» чтобы создать пошаговую инструкцию</div>';
+    return;
+  }
+  el.innerHTML = stepsData.map(function(step, i) {
+    return '<div class="step-card" id="step-card-'+i+'">'
+      + '<div class="step-card-hdr">'
+      + '<div class="step-num">'+(i+1)+'</div>'
+      + '<input type="text" value="'+escHtml(step.title)+'" placeholder="Название шага (напр. Открой раздел Платежи)" '
+      + 'oninput="stepsData['+i+'].title=this.value" style="flex:1;font-size:13px;padding:8px 12px">'
+      + '<div class="step-move">'
+      + '<button onclick="moveStep('+i+',-1)" '+(i===0?'disabled':'')+'>▲</button>'
+      + '<button onclick="moveStep('+i+',1)" '+(i===stepsData.length-1?'disabled':'')+'>▼</button>'
+      + '</div>'
+      + '<button class="step-del" onclick="removeStep('+i+')">✕</button>'
+      + '</div>'
+      + '<textarea placeholder="Описание шага..." oninput="stepsData['+i+'].text=this.value" '
+      + 'style="width:100%;margin-bottom:10px;min-height:60px;font-size:13px">'+escHtml(step.text)+'</textarea>'
+      + '<div class="step-upzone" id="step-upzone-'+i+'">'
+      + '<input type="file" accept="image/*,.gif" onchange="handleStepFile(event,'+i+')">'
+      + '🎞️ Прикрепить гифку к шагу (необязательно)'
+      + '</div>'
+      + (step.media_url ? '<div class="step-gif-preview"><img src="'+step.media_url+'"><br>'
+        + '<button class="btn btn-g" onclick="stepsData['+i+'].media_url='';stepsData['+i+'].pendingFile=null;renderStepsBuilder()" '
+        + 'style="font-size:11px;padding:4px 10px;margin-top:4px">✕ Удалить гифку</button></div>' : '')
+      + (step.pendingFile ? '<div style="font-size:11px;color:var(--ac);margin-top:6px">📎 '+step.pendingFile.name+'</div>' : '')
+      + '</div>';
+  }).join('');
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function handleStepFile(e, idx) {
+  var file = e.target.files[0];
+  if (!file) return;
+  stepsData[idx].pendingFile = file;
+  stepsData[idx].media_url = '';
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    stepsData[idx].media_url = ev.target.result; // preview only
+    renderStepsBuilder();
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearSteps() {
+  stepsData = [];
+  renderStepsBuilder();
+}
+
+// Upload all step files and return steps with real URLs
+function uploadStepsFiles() {
+  var promises = stepsData.map(function(step, i) {
+    if (step.pendingFile && step.media_url && step.media_url.startsWith('data:')) {
+      return uploadFile(step.pendingFile).then(function(url) {
+        stepsData[i].media_url = url;
+        stepsData[i].pendingFile = null;
+        return url;
+      });
+    }
+    return Promise.resolve(step.media_url);
+  });
+  return Promise.all(promises);
+}
+
+// Render steps in modal
+function renderStepsHtml(steps) {
+  if (!steps || !steps.length) return '';
+  var html = '<div class="steps-label">Пошаговая инструкция</div><div class="steps-list">';
+  steps.forEach(function(step, i) {
+    html += '<div class="step-item">'
+      + '<div class="step-item-hdr">'
+      + '<div class="step-badge">'+(i+1)+'</div>'
+      + '<div class="step-title">'+(step.title||'Шаг '+(i+1))+'</div>'
+      + '</div>'
+      + (step.media_url ? '<div class="step-gif"><img src="'+step.media_url+'" loading="lazy"></div>' : '')
+      + (step.text ? '<div class="step-text">'+step.text+'</div>' : '')
+      + (i < steps.length-1 ? '<div class="step-divider"></div>' : '')
+      + '</div>';
+  });
+  return html + '</div>';
+}
 
 // ── ARTICLE FORM ──────────────────────────────────────────────────────────────
 function startEdit(id){
@@ -871,6 +1026,9 @@ function startEdit(id){
   var cgp=document.getElementById('current-gif-preview');
   if(item.media_url){cgp.style.display='block';document.getElementById('current-gif-img').src=item.media_url;}
   else{cgp.style.display='none';}
+  // Load steps
+  stepsData = (item.steps||[]).map(function(s){return {title:s.title||'',text:s.text||'',media_url:s.media_url||'',pendingFile:null};});
+  renderStepsBuilder();
   document.getElementById('form-title').textContent='✏️ Редактирование статьи';
   document.getElementById('admin-view-title').textContent='✏️ Редактировать статью';
   document.getElementById('save-btn').textContent='💾 Сохранить изменения';
@@ -893,6 +1051,7 @@ function clearForm(){
   document.getElementById('file-preview').style.display='none';
   document.getElementById('current-gif-preview').style.display='none';
   document.getElementById('gif-file').value='';
+  clearSteps();
 }
 
 function previewFile(e){
@@ -951,8 +1110,9 @@ function saveArticle(){
   function persist(mediaUrl){
     var currentItem=editingId?KB.find(function(i){return i.id===editingId;}):null;
     var finalUrl=mediaUrl!==undefined?mediaUrl:(removeGif?null:(currentItem?currentItem.media_url:null));
+    var cleanSteps=stepsData.map(function(s){return{title:s.title,text:s.text,media_url:s.pendingFile?'':s.media_url};});
     var payload={title:title,category:cat,subtopic_id:subtopic_id,description:desc,
-      icon:icon,keywords:kw,media_url:finalUrl,media_type:finalUrl?'gif':null};
+      icon:icon,keywords:kw,media_url:finalUrl,media_type:finalUrl?'gif':null,steps:cleanSteps};
     var p=editingId
       ?apiPatch('/rest/v1/articles?id=eq.'+editingId,payload)
       :apiPost('/rest/v1/articles',payload);
@@ -967,8 +1127,16 @@ function saveArticle(){
     }).catch(function(err){btn.disabled=false;btn.textContent='✅ Сохранить';showToast('❌ '+err.message,true);});
   }
 
-  if(pendingFile){uploadFile(pendingFile).then(function(url){persist(url);}).catch(function(err){btn.disabled=false;btn.textContent='✅ Сохранить';showToast('❌ Ошибка загрузки: '+err.message,true);});}
-  else{persist(manualUrl||undefined);}
+  function doSave(mainUrl) {
+    uploadStepsFiles().then(function(){
+      persist(mainUrl);
+    }).catch(function(err){
+      btn.disabled=false; btn.textContent='✅ Сохранить';
+      showToast('❌ Ошибка загрузки шага: '+err.message,true);
+    });
+  }
+  if(pendingFile){uploadFile(pendingFile).then(function(url){doSave(url);}).catch(function(err){btn.disabled=false;btn.textContent='✅ Сохранить';showToast('❌ Ошибка загрузки: '+err.message,true);});}
+  else{doSave(manualUrl||undefined);}
 }
 
 function delArt(id){
@@ -1086,7 +1254,7 @@ function showView(v){
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
   var m={search:'nn-search',admin:'nn-admin',mgmt:'nn-mgmt'};
   if(m[v])document.getElementById(m[v]).classList.add('active');
-  if(v==='admin')renderAdminList();
+  if(v==='admin'){renderAdminList();if(!editingId)renderStepsBuilder();}
   if(v==='mgmt')renderMgmtTopics();
   if(window.innerWidth<=768){var sb=document.getElementById('sidebar');var ov=document.getElementById('sidebar-overlay');sb.classList.remove('open');ov.classList.remove('open');}
 }
@@ -1154,12 +1322,116 @@ uploadFile=function(file){
   });
 };
 
+
+// ── ПОЛНОТЕКСТОВЫЙ ПОИСК (PostgreSQL Russian FTS) ─────────────────────────
+var ftsTimer = null;
+
+function handleSearch(val) {
+  curSearch = (val||'').trim(); sugFocused = -1;
+  if (!fuse) return;
+
+  // Локальный fuse для подсказок — мгновенно
+  if (curSearch.length >= 1) {
+    var local = fuse.search(curSearch).map(function(r){return{item:r.item,score:r.score};});
+    renderSugg(local.slice(0,6));
+  } else {
+    hideSugg();
+  }
+
+  // Debounce FTS запрос
+  clearTimeout(ftsTimer);
+  if (curSearch.length >= 2) {
+    ftsTimer = setTimeout(function(){ doFtsSearch(curSearch); }, 350);
+  } else {
+    var results = KB.map(function(i){return{item:i,score:0};});
+    results = applyFilter(results);
+    renderCards(results); renderMeta(results.length);
+  }
+}
+
+function doFtsSearch(q) {
+  // PostgreSQL FTS — понимает русскую морфологию
+  var ftsQuery = q.trim().split(/\s+/).map(function(w){return w+':*';}).join(' & ');
+  var path = '/rest/v1/articles?select=*&search_vector=fts(russian).'+encodeURIComponent(ftsQuery)+'&order=title.asc';
+
+  apiGet(path).then(function(rows) {
+    if (!Array.isArray(rows) || !rows.length) {
+      // Fallback на fuse если FTS ничего не нашёл
+      var fallback = fuse.search(q).map(function(r){return{item:r.item,score:r.score};});
+      fallback = applyFilter(fallback);
+      renderCards(fallback); renderMeta(fallback.length);
+      logSearch(q, fallback.length);
+      return;
+    }
+    var results = rows.map(function(row){
+      var mapped = {id:row.id,title:row.title||'',cat:row.category||'web',
+        subtopic_id:row.subtopic_id||null,media:row.media_type||null,
+        desc:row.description||'',icon:row.icon||'📄',
+        kw:row.keywords||'',media_url:row.media_url||null,steps:row.steps||[]};
+      return {item:mapped, score:0};
+    });
+    results = applyFilter(results);
+    renderCards(results); renderMeta(results.length);
+    logSearch(q, results.length);
+  }).catch(function() {
+    // При ошибке FTS — локальный поиск
+    var fallback = fuse.search(q).map(function(r){return{item:r.item,score:r.score};});
+    fallback = applyFilter(fallback);
+    renderCards(fallback); renderMeta(fallback.length);
+  });
+}
+
+// ── АНАЛИТИКА ────────────────────────────────────────────────────────────────
+var logTimer = null;
+function logSearch(q, count) {
+  if (!q || q.length < 2) return;
+  clearTimeout(logTimer);
+  logTimer = setTimeout(function(){
+    fetch(API+'?path='+encodeURIComponent('/rest/v1/search_logs'), {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Prefer':'return=minimal'},
+      body: JSON.stringify({query: q, results_count: count})
+    }).catch(function(){});
+  }, 1000);
+}
+
+// ── ПОДЕЛИТЬСЯ ССЫЛКОЙ ───────────────────────────────────────────────────────
+function shareArticle() {
+  if (!curItem) return;
+  var url = window.location.origin + window.location.pathname + '?article=' + curItem.id;
+  if (navigator.share) {
+    navigator.share({ title: curItem.title, url: url }).catch(function(){});
+  } else {
+    navigator.clipboard.writeText(url).then(function(){
+      showToast('🔗 Ссылка скопирована!');
+    }).catch(function(){
+      showToast('🔗 ' + url);
+    });
+  }
+}
+
+// Открываем статью по ссылке если есть ?article=ID
+function checkUrlArticle() {
+  var params = new URLSearchParams(window.location.search);
+  var articleId = parseInt(params.get('article'));
+  if (articleId) {
+    // Ждём загрузки данных
+    var attempts = 0;
+    var check = setInterval(function(){
+      var item = KB.find(function(i){ return i.id === articleId; });
+      if (item) { clearInterval(check); openM(articleId); }
+      if (++attempts > 20) clearInterval(check);
+    }, 200);
+  }
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 document.getElementById('vSearch').style.display='flex';
 document.getElementById('vAdmin').style.display='none';
 document.getElementById('vMgmt').style.display='none';
 checkSavedSession();
 loadAll(false);
+setTimeout(checkUrlArticle, 800);
 </script>
 </body>
 </html>
