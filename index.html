@@ -534,12 +534,12 @@ mark{background:rgba(61,122,74,.15);color:var(--ac);border-radius:3px;padding:0 
 
 <script>
 // ── CONFIG ───────────────────────────────────────────────────────────────────
-// Прямые запросы к Supabase — без прокси, максимальная скорость
-var SB_URL = 'https://jvjsorcgunzxtuwrchww.supabase.co';
+// Все запросы через Netlify Functions — корпоративный файрвол не блокирует
+var SB_URL = 'https://jvjsorcgunzxtuwrchww.supabase.co'; // только для auth напрямую
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2anNvcmNndW56eHR1d3JjaHd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MDIwOTcsImV4cCI6MjA4ODE3ODA5N30.zfTmycvrRTgLb8JtzD2IH6-jTLMVYnkRTlDUc06iSN4';
-var SB_H = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
-// Edge Functions нужны только для загрузки файлов (auth идёт напрямую)
-var UPLOAD = 'https://jvjsorcgunzxtuwrchww.supabase.co/functions/v1/upload';
+var SB_H = {'Content-Type':'application/json'}; // заголовки для прямых запросов
+var PROXY = '/.netlify/functions/api'; // прокси через Netlify
+var UPLOAD = '/.netlify/functions/upload';
 
 // ── STATE ────────────────────────────────────────────────────────────────────
 var KB=[], TOPICS=[], SUBTOPICS=[];
@@ -623,29 +623,28 @@ function checkSavedSession(){
 // ── API HELPERS ───────────────────────────────────────────────────────────────
 // ── ПРЯМЫЕ ЗАПРОСЫ К SUPABASE (без прокси) ──────────────────────────────────
 function apiGet(path){
-  return fetch(SB_URL+path,{headers:SB_H}).then(function(r){return r.json();});
+  return fetch(PROXY+'?path='+encodeURIComponent(path)).then(function(r){return r.json();});
 }
 
 function authHeaders(){
-  var h = Object.assign({},SB_H,{'Prefer':'return=representation'});
-  if(userToken) h['Authorization']='Bearer '+userToken;
+  var h = {'Content-Type':'application/json','x-user-token':userToken||'','Prefer':'return=representation'};
   return h;
 }
 
 function apiPost(path,body){
-  return fetch(SB_URL+path,{
+  return fetch(PROXY+'?path='+encodeURIComponent(path),{
     method:'POST', headers:authHeaders(), body:JSON.stringify(body)
   }).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
 }
 
 function apiPatch(path,body){
-  return fetch(SB_URL+path,{
+  return fetch(PROXY+'?path='+encodeURIComponent(path),{
     method:'PATCH', headers:authHeaders(), body:JSON.stringify(body)
   }).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
 }
 
 function apiDelete(path){
-  return fetch(SB_URL+path,{
+  return fetch(PROXY+'?path='+encodeURIComponent(path),{
     method:'DELETE', headers:authHeaders()
   }).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);});
 }
@@ -700,8 +699,8 @@ function fetchFresh(){
   // Один запрос — всё вложенно через Supabase select
   // topics -> subtopics -> articles — всё за один round-trip
   return Promise.all([
-    fetch(SB_URL+'/rest/v1/topics?select=*,subtopics(*)&order=order_index.asc', {headers:SB_H}).then(function(r){return r.json();}),
-    fetch(SB_URL+'/rest/v1/articles?select=*&order=order_index.asc,title.asc', {headers:SB_H}).then(function(r){return r.json();})
+    apiGet('/rest/v1/topics?select=*,subtopics(*)&order=order_index.asc'),
+    apiGet('/rest/v1/articles?select=*&order=order_index.asc,title.asc')
   ]).then(function(r){
     var topicsWithSubs = Array.isArray(r[0]) ? r[0] : [];
     var topics = topicsWithSubs.map(function(t){ return {id:t.id,name:t.name,icon:t.icon,order_index:t.order_index}; });
@@ -1386,9 +1385,9 @@ function handleSearch(val) {
 function doFtsSearch(q) {
   // PostgreSQL FTS — понимает русскую морфологию
   var ftsQuery = q.trim().split(/\s+/).map(function(w){return w+':*';}).join(' & ');
-  var path = SB_URL+'/rest/v1/articles?select=*&search_vector=fts(russian).'+encodeURIComponent(ftsQuery)+'&order=title.asc';
+  var path = '/rest/v1/articles?select=*&search_vector=fts(russian).'+ftsQuery+'&order=title.asc';
 
-  fetch(path,{headers:SB_H}).then(function(r){return r.json();}).then(function(rows) {
+  apiGet(path).then(function(rows) {
     if (!Array.isArray(rows) || !rows.length) {
       // Fallback на fuse если FTS ничего не нашёл
       var fallback = localSearch(q);
@@ -1421,9 +1420,9 @@ function logSearch(q, count) {
   if (!q || q.length < 2) return;
   clearTimeout(logTimer);
   logTimer = setTimeout(function(){
-    fetch(SB_URL+'/rest/v1/search_logs', {
+    fetch(PROXY+'?path='+encodeURIComponent('/rest/v1/search_logs'), {
       method: 'POST',
-      headers: Object.assign({},SB_H,{'Prefer':'return=minimal'}),
+      headers: {'Content-Type':'application/json','Prefer':'return=minimal'},
       body: JSON.stringify({query: q, results_count: count})
     }).catch(function(){});
   }, 1000);
