@@ -491,9 +491,9 @@ mark{background:rgba(61,122,74,.15);color:var(--ac);border-radius:3px;padding:0 
 
 <script>
 // ── CONFIG ───────────────────────────────────────────────────────────────────
-var API = '/.netlify/functions/api';
-var AUTH = '/.netlify/functions/auth';
-var UPLOAD = '/.netlify/functions/upload';
+var API = 'https://jvjsorcgunzxtuwrchww.supabase.co/functions/v1/api';
+var AUTH = 'https://jvjsorcgunzxtuwrchww.supabase.co/functions/v1/auth';
+var UPLOAD = 'https://jvjsorcgunzxtuwrchww.supabase.co/functions/v1/upload';
 
 // ── STATE ────────────────────────────────────────────────────────────────────
 var KB=[], TOPICS=[], SUBTOPICS=[], fuse=null;
@@ -600,30 +600,72 @@ function apiDelete(path){
 }
 
 // ── LOAD ──────────────────────────────────────────────────────────────────────
-function loadAll(manual){
-  if (manual) showToast('🔄 Обновляем...');
-  if (!manual) document.getElementById('loader').classList.remove('hidden');
-  Promise.all([
+var CACHE_KEY = 'agroros_kb_cache';
+var CACHE_TTL = 5 * 60 * 1000; // 5 минут
+
+function applyData(data){
+  TOPICS = data.topics;
+  SUBTOPICS = data.subtopics;
+  KB = data.articles.map(function(row){
+    return {id:row.id,title:row.title||'',cat:row.category||'web',
+      subtopic_id:row.subtopic_id||null,media:row.media_type||null,
+      desc:row.description||'',icon:row.icon||'📄',
+      kw:row.keywords||'',media_url:row.media_url||null};
+  });
+  fuse = new Fuse(KB, fuseOpts);
+  document.getElementById('loader').classList.add('hidden');
+  renderNavTopics(); renderSubtopicSelects(); updateStats(); handleSearch(curSearch);
+}
+
+function fetchFresh(){
+  return Promise.all([
     apiGet('/rest/v1/topics?select=*&order=order_index.asc'),
     apiGet('/rest/v1/subtopics?select=*&order=order_index.asc'),
     apiGet('/rest/v1/articles?select=*&order=order_index.asc,title.asc')
   ]).then(function(r){
-    TOPICS=r[0]; SUBTOPICS=r[1];
-    KB=r[2].map(function(row){
-      return {id:row.id,title:row.title||'',cat:row.category||'web',
-        subtopic_id:row.subtopic_id||null,media:row.media_type||null,
-        desc:row.description||'',icon:row.icon||'📄',
-        kw:row.keywords||'',media_url:row.media_url||null};
-    });
-    fuse=new Fuse(KB,fuseOpts);
-    document.getElementById('loader').classList.add('hidden');
-    renderNavTopics(); renderSubtopicSelects(); updateStats(); handleSearch(curSearch);
-    if (manual) showToast('✅ Обновлено · '+KB.length+' статей');
-  }).catch(function(err){
-    document.getElementById('loader-text').innerHTML=
-      '<div style="color:#c0522a;text-align:center;font-size:13px">❌ '+err.message
-      +'<br><br><button class="btn btn-p" onclick="loadAll(false)" style="margin-top:8px">🔄 Повторить</button></div>';
+    var data = { topics: r[0], subtopics: r[1], articles: r[2], ts: Date.now() };
+    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch(e){}
+    return data;
   });
+}
+
+function loadAll(manual){
+  if (manual) {
+    showToast('🔄 Обновляем...');
+    fetchFresh().then(function(data){
+      applyData(data);
+      showToast('✅ Обновлено · ' + KB.length + ' статей');
+    }).catch(function(err){ showToast('❌ ' + err.message, true); });
+    return;
+  }
+
+  // Stale-while-revalidate: показываем кэш мгновенно, обновляем в фоне
+  var cached = null;
+  try {
+    var raw = sessionStorage.getItem(CACHE_KEY);
+    if (raw) cached = JSON.parse(raw);
+  } catch(e){}
+
+  if (cached && cached.topics && cached.articles) {
+    // Показываем кэш сразу — без лоадера
+    applyData(cached);
+    // Если кэш старше TTL — тихо обновляем в фоне
+    if (Date.now() - (cached.ts || 0) > CACHE_TTL) {
+      fetchFresh().then(function(data){
+        applyData(data);
+      }).catch(function(){});
+    }
+  } else {
+    // Кэша нет — показываем лоадер и грузим
+    document.getElementById('loader').classList.remove('hidden');
+    fetchFresh().then(function(data){
+      applyData(data);
+    }).catch(function(err){
+      document.getElementById('loader-text').innerHTML =
+        '<div style="color:#c0522a;text-align:center;font-size:13px">❌ ' + err.message
+        + '<br><br><button class="btn btn-p" onclick="loadAll(false)" style="margin-top:8px">🔄 Повторить</button></div>';
+    });
+  }
 }
 
 // ── NAV ───────────────────────────────────────────────────────────────────────
@@ -919,7 +961,7 @@ function saveArticle(){
       btn.disabled=false; btn.textContent='✅ Сохранить';
       document.getElementById('form-title').textContent='📝 Новая статья';
       document.getElementById('admin-view-title').textContent='➕ Добавить статью';
-      showToast(editingId?'✅ Статья обновлена!':'✅ Статья добавлена!');
+      try{sessionStorage.removeItem(CACHE_KEY);}catch(e){}showToast(editingId?'✅ Статья обновлена!':'✅ Статья добавлена!');
       editingId=null;
       loadAll(false); setTimeout(renderAdminList,1200);
     }).catch(function(err){btn.disabled=false;btn.textContent='✅ Сохранить';showToast('❌ '+err.message,true);});
@@ -933,7 +975,7 @@ function delArt(id){
   if(!isAdmin)return;
   if(!confirm('Удалить эту статью?'))return;
   apiDelete('/rest/v1/articles?id=eq.'+id)
-    .then(function(){showToast('🗑️ Удалено');loadAll(false);setTimeout(renderAdminList,800);})
+    .then(function(){showToast('🗑️ Удалено');try{sessionStorage.removeItem(CACHE_KEY);}catch(e){}loadAll(false);setTimeout(renderAdminList,800);})
     .catch(function(err){showToast('❌ '+err.message,true);});
 }
 
@@ -991,7 +1033,7 @@ function addTopic(){
   var icon=document.getElementById('new-topic-icon').value.trim()||'📁';
   if(!name){showToast('❌ Введи название',true);return;}
   apiPost('/rest/v1/topics',{name:name,icon:icon,order_index:TOPICS.length+1})
-    .then(function(){document.getElementById('new-topic-name').value='';showToast('✅ Топик добавлен');loadAll(false);setTimeout(renderMgmtTopics,800);})
+    .then(function(){document.getElementById('new-topic-name').value='';showToast('✅ Топик добавлен');try{sessionStorage.removeItem(CACHE_KEY);}catch(e){}loadAll(false);setTimeout(renderMgmtTopics,800);})
     .catch(function(err){showToast('❌ '+err.message,true);});
 }
 
@@ -1001,7 +1043,7 @@ function addSubtopic(topicId){
   var icon=document.getElementById('si-'+topicId).value.trim()||'📂';
   if(!name){showToast('❌ Введи название',true);return;}
   apiPost('/rest/v1/subtopics',{topic_id:topicId,name:name,icon:icon,order_index:SUBTOPICS.length+1})
-    .then(function(){showToast('✅ Подтопик добавлен');loadAll(false);setTimeout(renderMgmtTopics,800);})
+    .then(function(){showToast('✅ Подтопик добавлен');try{sessionStorage.removeItem(CACHE_KEY);}catch(e){}loadAll(false);setTimeout(renderMgmtTopics,800);})
     .catch(function(err){showToast('❌ '+err.message,true);});
 }
 
@@ -1009,7 +1051,7 @@ function delTopic(id){
   if(!isAdmin)return;
   if(!confirm('Удалить топик и все его подтопики?'))return;
   apiDelete('/rest/v1/topics?id=eq.'+id)
-    .then(function(){showToast('🗑️ Топик удалён');loadAll(false);setTimeout(renderMgmtTopics,800);})
+    .then(function(){showToast('🗑️ Топик удалён');try{sessionStorage.removeItem(CACHE_KEY);}catch(e){}loadAll(false);setTimeout(renderMgmtTopics,800);})
     .catch(function(err){showToast('❌ '+err.message,true);});
 }
 
@@ -1017,7 +1059,7 @@ function delSubtopic(id){
   if(!isAdmin)return;
   if(!confirm('Удалить подтопик?'))return;
   apiDelete('/rest/v1/subtopics?id=eq.'+id)
-    .then(function(){showToast('🗑️ Подтопик удалён');loadAll(false);setTimeout(renderMgmtTopics,800);})
+    .then(function(){showToast('🗑️ Подтопик удалён');try{sessionStorage.removeItem(CACHE_KEY);}catch(e){}loadAll(false);setTimeout(renderMgmtTopics,800);})
     .catch(function(err){showToast('❌ '+err.message,true);});
 }
 
