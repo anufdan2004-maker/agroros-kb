@@ -1,10 +1,10 @@
 // ── CONFIG ───────────────────────────────────────────────────────────────────
-// Все запросы через Netlify Functions — корпоративный файрвол не блокирует
-var SB_URL = 'https://jvjsorcgunzxtuwrchww.supabase.co'; // только для auth напрямую
+// Supabase Edge Functions как прокси — работают везде
+var SB_URL = 'https://jvjsorcgunzxtuwrchww.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2anNvcmNndW56eHR1d3JjaHd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MDIwOTcsImV4cCI6MjA4ODE3ODA5N30.zfTmycvrRTgLb8JtzD2IH6-jTLMVYnkRTlDUc06iSN4';
-var SB_H = {'Content-Type':'application/json'}; // заголовки для прямых запросов
-var PROXY = '/.netlify/functions/api'; // прокси через Netlify
-var UPLOAD = '/.netlify/functions/upload';
+var SB_H = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+var PROXY = 'https://jvjsorcgunzxtuwrchww.supabase.co/functions/v1/api';
+var UPLOAD = 'https://jvjsorcgunzxtuwrchww.supabase.co/functions/v1/upload';
 
 // ── STATE ────────────────────────────────────────────────────────────────────
 var KB=[], TOPICS=[], SUBTOPICS=[];
